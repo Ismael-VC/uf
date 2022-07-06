@@ -902,7 +902,6 @@ create editpos 0 , 0 ,
   [char] h  ->  toggle-block  0  |
   [char] p  ->  previous-block  0  | ;
 : (ctrl-key)  ( key -- key|0 )
-s" ctrl " ctype dup (.) ctype 10 cout
   [char] a  ->  start  0  |  
   [char] c  ->  terminate 0  |
   [char] e  ->  end  0 | 
