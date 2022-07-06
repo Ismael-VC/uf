@@ -1,0 +1,20 @@
+#!/bin/sh
+b=$1
+e=$(expr $2 + 1)
+while [ "$b" != "$e" ]; do
+    awk '
+function trim(s) {
+    p = match(s, "[ \n\t]+$")
+    if(p != 0) return substr(s, 1, RSTART)
+    return s
+}
+{
+    s = $0
+    while(s != "") {
+        ln = trim(substr(s, 1, 64))
+        s = substr(s, 65)
+        printf("%s\n", ln)
+    }
+}' < $b
+    b=$(expr $b + 1)
+done

@@ -1,0 +1,3 @@
+#!/usr/bin/rc
+ufx <examples/bounce.f
+uxnemu bounce.rom

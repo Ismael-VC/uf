@@ -1,0 +1,55 @@
+#!/bin/sh
+awk -vb=$1 -vtitle=$2 '
+function padl(str) {
+    for(i = 64 - length(str); i > 0; --i) str = str " "
+    return str
+}
+function mkhdr() {
+    hdr = padl(substr("\\ " title " (" n ") Load  Save  Snarf  Paste  Prev  Next  Abort Doc", 1, 64))
+}
+function emit() {
+    printf("%d ", b)
+    printf("%s%s%s%s", hdr, empty, bl, empty) >b
+    close b
+    bl = ""
+    r = 0
+    ++b
+    ++n
+    mkhdr()
+}
+function trim(s) {
+    p = match(s, "[ \n\t]+$")
+    if(p != 0) return substr(s, 1, RSTART)
+    return s
+}
+BEGIN {
+    bl = ""
+    r = 0
+    ln = n = 1
+    mkhdr()
+    empty = padl("")
+}
+{
+    s = trim($0)
+    if(s == "") {
+        bl = bl empty
+        if(r++ >= 35) emit()
+        ++ln
+        next    
+    }
+    while(s != "") {
+        h = trim(substr(s, 1, 64))
+        t = substr(s, 65)
+        if(length(t) && length(h) == 64 && substr(t, 1, 1) != " ") {
+            printf("line too long: %d: %s\n", ln, $0);
+            exit(1)
+        }
+        bl = bl padl(h)
+        if(r++ >= 35) emit()
+        s = t
+    }
+    ++ln
+}
+END {
+    if(bl != "") emit()
+}' -

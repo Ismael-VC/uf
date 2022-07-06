@@ -1,0 +1,312 @@
+UF - Version 3
+==============
+
+!           ( x a -- )              Store x at a
+!+          ( a1 x -- a2 )          Store and increase address
+"           ( | ..." -- a u )       Store quoted string
+'           ( | <word> -- a )       Push execution token of <word>
+#           ( u1 -- u2 )            Store next digit in number buffer
+#>          ( u1 -- a u2 )          Finish numeric conversion
+#s          ( u1 -- 0 )             Convert remaining digits
+(           ( C: | ...) -- )        Ignore everything up to next ")" [C]
+(.)         ( n -- a u )            Convert number to string
+(u.)        ( u1 -- a u2 )          Convert unsigned number to string
+*           ( n1 n2 -- n3 )         Multiply
++           ( n1 n2 -- n3 )         Add
++!          ( n a -- )              Increase number at a by n
++field      ( n | <word> -- )       Define structure field, word adds field offset [X]
++loop       ( u -- )                Increase index by n and loop [C]
+,           ( x -- )                Store x in dictionary and increase dictionary pointer
+-           ( n1 n2 -- n3 )         Subtract
+->          ( x -- x| )             Equivalent to `over =  if` [C]
+-rot        ( x y z -- z x y )      Rotate down
+-trailing   ( a u1 -- a u2 )        Drop trailing blanks
+.           ( n -- )                Print number
+."          ( |..." -- )            Print quoted string [C]
+.(          ( |...) -- )            Print comment
+.r          ( n u -- )              Print n right-justified by u
+.s          ( -- )                  Show contents of working stack
+.vocs       ( -- )                  Show all defined vocabularies
+/           ( n1 n2 -- n3 )         Signed division
+/mod        ( n1 n2 -- n3 n4 )      Ssigned division with rest in u3 and result in u4
+/string     ( a1 u1 u2 -- a2 u3 )   Advance string start by u2
+0<          ( n -- f )              Less than zero
+0<>         ( x -- f )              -1 if not zero
+0=          ( x -- f )              Equal to zero
+1+          ( n1 -- n2 )            Increase by 1
+1-          ( nq -- n2 )            Decrease by 1
+2!          ( x y a -- )            Store y, x at a, a + 1
+2*          ( n1 -- n2 )            Shift left by 1 bit
+2/          ( u1 -- u2 )            Shift right by 1 bit (unsigned)
+2@          ( a -- x y )            Fetch y, x at a, a + 1
+2>r         ( x y -- )              Swap 2 values and push on return stack
+2drop       ( x y -- )              Drop 2 values
+2dup        ( x y -- x y x y )      Dup 2 values
+2nip        ( x y z q -- z q )      Nip 2 values
+2over       ( x y z q -- x y z q x y ) Over 2 values
+2r@         ( -- x y )              Fetch topmost 2 values from return stack and swap
+2r>         ( -- x y )              Pop 2 values from return stack and swap
+2rot        ( x y z q v w -- z q v w x y ) Rotate 2 values
+2swap       ( x y z q -- z q x y )  Swap 2 values
+:           ( | <word> ... -- )     Start colon definition, add compiler vocabulary and start compiling
+:noname     ( | ... -- xt )         Compile headerless word and push execution token
+;           ( -- )                  Terminate colon definition and remove topmost vocabulary from vocabulary stack [C]
+<           ( n1 n2 -- f )          Signed less than
+<=          ( n1 n2 -- f )          Signed less than or equal
+<#          ( -- )                  Begin number conversion
+<>          ( x y -- f )            Not equal
+=           ( x y -- f )            Equal
+>           ( n1 n2 -- f )          Signed greater than
+>=          ( n1 n2 -- f )          Signed greater than or equal
+>in         ( -- a )                Variable holding position in `tib`
+>limit      ( -- a )                Variable holding end position in `tib`
+>r          ( x -- )                Push on return stack
+?           ( a -- )                Equivalent to `@ .` [X]
+?do         ( u1 u2 -- )            Start `do` loop if u1 > u2, or skip otherwise [C]
+?dup        ( x -- x x | x )        Duplicate if not 0
+?exit       ( f -- )                Conditional exit
+@           ( a -- x )              Fetch x from a
+@+          ( a1 -- a2 x )          Fetch and increase address
+[           ( | ... -- )            Enter interpretation mode [C]
+[']         ( | <word> -- xt )      Push execution token of <word> [C]
+[char]      ( | <word> -- c )       Push code of first character of <word> [C]
+[defined]   ( | <word> -- f )       Immediate test whether word is defined [X]
+[else]      ( | ... -- )            Interpreter conditional [X]
+[if]        ( | ... -- )            Interpreter conditional [X]
+[then]      ( -- )                  Interpreter conditional [X]
+[undefined] ( | <word> -- f )       Immediate test whether word is not defined [X]
+\           ( | ... -- )            Ignore to end of line [C]
+\s          ( | ... -- )            Ignore to end of line or block, when loading [G]
+]           ( -- )                  Enter compilation mode
+Abort       ( -- )                  Abort editing [G]
+Doc         ( -- )                  Switch editing to documentation block [G]
+Load        ( -- )                  Save and evaluate current block [G]
+Next        ( -- )                  Edit next block [G]
+Paste       ( -- )                  Insert contents of ".snarf" file [G]
+Prev        ( -- )                  Edit previous block [G]
+Save        ( -- )                  Save current block if modified [G]
+Snarf       ( -- )                  Write current line or marked region to ".snarf" file [G]
+Source      ( -- )                  Switch editing to source block [G]
+abort       ( ... -- )              Clear stacks and re-enter interpretation mode [D]
+abort"      ( f | ..." -- )         If true, show quoted text and abort [C]
+abs         ( n -- u )              Absolute value
+accept      ( a u1 -- u2 )          Read keyboard input at a, at most u1 bytes, pushes actual number of chars read
+adsr        ( u -- )                Set ADSR field of audio device [G]
+again       ( -- )                  Repeat `begin ... again` loop [C]
+and         ( n1 n2 -- n3 )         Binary AND
+align       ( -- )                  Align dictionary top
+aligned     ( n1 -- n2 )            Align number
+allot       ( u -- )                Allocate u bytes in dictionary
+also        ( -- )                  Duplicate topmost entry on vocabulary stack
+at-xy       ( x y -- )              Set cursor position to row y column x [G]
+auto        ( u -- )                Set AUTO field of screen device [G]
+base        ( a -- )                Variable holding numeric base
+begin       ( -- )                  Start loop [C]
+begin-structure ( | <word> -- u )   Start structure definition, word pushes total length [X]
+bl          ( -- 32 )               Blank space constant
+blank       ( a u -- )              Fill area with spaces
+boot        ( -- )                  Entry point
+bounds      ( a1 n -- a2 a1 )       Gives range from a1 to a1 + n (not inclusive)
+blk         ( -- a )                Variable holding currently edited block number [G]
+brk         ( -- )                  Perform BRK instruction
+buffer:     ( u | <word> -- )       Define buffer of u bytes
+bye         ( -- )                  Exit VM [D]
+c!          ( c a -- )              Store byte c at address a
+c@          ( a -- c )              Fetch byte from address a
+c,          ( c -- )                Store byte in dictionary and increase dictionary pointer
+cfield:     ( | <word> -- )         Define byte sized structure field, word adds field offset [X]
+char        ( | <word> -- c )       Push first character of <word>
+cell+       ( n1 -- n2 )            Add 2
+cells       ( u1 -- u2 )            Multiplies u1 by 2
+cin         ( -- c )                Read character from console device [GD]
+clear       ( ... -- )              Clear value stack
+clamp       ( n1 n2 n3 -- n4 )      Ensure n1 is between n2 and n3 (inclusive)
+cmove       ( a1 a2 u -- )          Copy memory from a1 to a2
+cmove>      ( a1 a2 u -- )          Copy memory from a1 to a2 from the end
+code        ( | <word> -- )         Start assembler word definition [X]
+colors      ( r g b -- )            Set screen colors [G]
+compare     ( a1 u1 a2 u2 -- n )    Compares memory lexicographically
+compile,    ( xt -- )               Compile execution token as subroutine call
+compiler    ( -- )                  replace the current vocabulary with the `compiler` vocabulary
+constant    ( x | <word> -- )       Define constant
+copy        ( u1 u2 -- )            Copies block u1 to u2 and start editing [G]
+count       ( a1 -- a2 u )          Push counted string at a1 as start address and length
+cout        ( c -- )                Write character to console device [GD]
+cr          ( -- )                  Write newline character
+crash       ( ... -- )              Abort with error
+create      ( | <word> -- )         Create word pointing to current dictionary top
+ctype       ( a u -- )              Write string to console [G]
+cvector     ( xt -- )               Set console vector
+d#          ( | <number> -- n )     Push decimal numeric literal [X]
+day         ( -- u )                Push day of the month
+decimal     ( -- )                  Set `base` to 16
+decompile   ( xt -- )               Decompile from address [X]
+defer       ( | <word> -- )         Define deferred word
+defer!      ( xt1 xt2 -- )          Set vector of deferred word xt2 to xt1 
+defer@      ( xt1 -- xt2 )          Fetch vector of deferred word xt1
+definitions ( -- )                  Further dictionary definitions are added to the current vocabulary
+dei         ( c1 -- c2 )            Read byte port c1 of device
+dei2        ( c -- u )              Read short port c of device
+deo         ( c1 c2 -- )            Write byte port c2 of device
+deo2        ( u c -- )              Write short port c of device
+depth       ( -- u )                Push stack depth
+diff        ( u1 u2 -- u3 )         Reverse subtract
+do          ( u1 u2 -- )            Start `do` loop, counting from u2 to u1 [C]
+does>       ( | ... -- a )          Set behaviour of last created word [C]
+dotw        ( -- u )                Push day of the week
+doty        ( -- u )                Push day of the year
+drop        ( x -- )                Drop topmost stack value
+dump        ( a u -- )              Dump memory [X]
+dup         ( x -- x x )            Duplicate topmost value on stack
+dup>r       ( x -- x )              Faster combination of `dup >r`
+edit        ( u -- )                Load and edit block [GD]
+else        ( -- )                  Begin `else` part of conditional
+emit        ( c -- )                Print character with code c [D]
+emits       ( c u -- )              `emit` c u times
+end-code    ( -- )                  End assembler word definition [X]
+end-structure ( -- )                End structure definition [X]
+erase       ( a u -- )              Clear memory
+execute     ( xt -- )               Invoke execution token
+exit        ( -- )                  Exit word
+export      ( u1 u2 -- )            Dump contents of blocks u1 to u2 (inclusive) to the console [G]
+false       ( -- 0 )                Push false constant
+field:      ( | <word> -- )         Define cell sized structure field, word adds field offset [X]
+fileappend  ( a u -- u2 )              Append data to file specified in file device and return success field
+filedelete  ( f -- )                Set delete field of file device
+filename    ( a u -- )              Set name field of file device (uses the `pad`)
+fileread    ( a u -- u2 )           Read from file specified in file device and return success field
+filewrite   ( a u -- u2 )           Write to file specified in file device and return success field
+fill        ( a u c -- )            Fill memory with byte u
+find        ( a1 -- a2 n )          Locate counted string at a1 in vocabulary stack and push original address and 0 or found xt and 1 (immediate) or -1
+forth       ( -- )                  Change current vocabulary to the default one
+h#          ( | <number> -- n )     Push hexadecimal numeric literal [X]
+h.          ( n -- )                Write hexadecimal number
+here        ( -- a )                Push top of dictionary pointer
+hex         ( -- )                  Set `base` to 16
+hold        ( c -- )                Prepend character to numeric conversion
+holds       ( a u -- )              Prepend string to numeric conversion
+hour        ( -- u )                Push current hour
+i           ( -- u )                Push index of innermost `do` loop
+if          ( f -- )                Start conditional [C]
+immediate   ( -- )                  Make most recent definition immediate
+interpret   ( | ... -- )            Interpret code in `tib`
+invert      ( n1 -- n2 )            Perform binary NOT
+is          ( xt | <word> -- )      Set execution vector of deferred word
+isdst       ( -- f )                Push daylight saving time flag
+j           ( -- u )                Push index of 2nd innermost `do` loop
+jbutton     ( -- u )                Push button field of controller device [GX]
+jkey        ( -- c )                Push key field of controller device [GX]
+jvector     ( xt -- )               Set vector of controller device [GX]
+key         ( -- c )                Read char and push code [D]
+list        ( u -- )                Type contents of block u [G]
+literal     ( x -- )                Compile literal
+load        ( u -- )                Load block, ignores rest of line if interpreted [G]
+loadrom     ( a u -- )              Load rom file with name given by a,u
+loop        ( -- )                  End of `do ... loop` loop
+lshift      ( u1 u2 -- u3 )         Shift u1 left by u2 bits
+marker      ( | <word> -- )         Define marker to restore dictionary and vocabularies to current state [X]
+max         ( n1 n2 -- n3 )         Maximum value
+min         ( n1 n2 -- n3 )         Minimum value
+minute      ( -- u )                Push current minute [X]
+mod         ( n1 n2 -- n3 )         Modulo
+month       ( -- u )                Push current month [X]
+mouse       ( -- x y )              Push x/y fields of mouse device [GX]
+mscroll     ( -- x y )              Push x/y scroll fields of mouse device [GX]
+mstate      ( -- u )                Push state field of mouse device [GX]
+mvector     ( xt -- )               Set vector of mouse device [GX]
+negate      ( n1 -- n2 )            Negate value
+new         ( -- )                  Marker, restore dictionary and vocabularies to defaults [XG]
+nip         ( x y -- y )            Remove second value on stack
+noop        ( -- )                  Does nothing
+number      ( a -- a 0 | n 1 )      Convert counted string at a to number
+off         ( a -- )                Store 0 at a
+on          ( a -- )                Store -1 at a
+only        ( -- )                  Clear vocabulary stack and set default vocabulary
+or          ( n1 n2 -- n3 )         Perform binary OR
+order       ( -- )                  Print vocabulary stack and definition vocabulary [X]
+over        ( x y -- x y x )        Push second value on stack
+pad         ( -- a )                Push scratchpad area address
+page        ( -- )                  Clear screen [GD]
+parse       ( c | ... <c> -- a u )  Parse and return string delimited by c
+pause       ( -- )                  Allow interrupt handling [X] 
+pick        ( ... u -- x )          Push u-th value on stack, coujnted from top
+pixel       ( u -- )                Set pixel field of screen device [GX]
+place       ( a1 u a2 -- )          Store string a1,u as counted string at a2
+play        ( u -- )                Set pitch field of audio device [GX]
+position    ( x y -- )              Set x/y fields of screen device [GX]
+postpone    ( | <word> -- )         Compile word if immediate or code to compile call to word if not [C]
+previous    ( -- )                  Pop topmost vocabulary on vocabulary stack
+prompt      ( -- )                  Show prompt before reading user input [D]
+query       ( -- )                  Read user input into `tib`
+quit        ( ... -- )              Clear stacks and read user input
+r>          ( -- x )                Pop value from return stack
+r>drop      ( -- )                  Drop topmost value on return stack
+r@          ( -- x )                Fetch topmost value from return stack
+randomize   ( -- )                  Set the random number seed to some value [X]
+recurse     ( -- )                  Invoke current definition
+repeat      ( -- )                  End of `begin ... while ... repeat` loop [C]
+reset       ( -- )                  Clear return stack
+rnd         ( -- n )                Returns a random number [X]
+rot         ( x y z -- y z x )      Rotate values on stack
+rshift      ( u1 u2 -- u3 )         Shift u1 right by u2 bits
+s"          ( | ..." -- a u )       Push string literal [C]
+see         ( | <word> -- )         Decompile word [X]
+seed        ( -- a )                Current random number seed [X]
+sample      ( a u -- )              Set addr and length field of audio device [GX]
+save        ( | <name> -- )         Save memory from h# 100 to dictionary top in file
+saved       ( a1 u1 a2 u2 -- )      Save u1 bytes at a1 in file with name given by a2, u2
+scan        ( a1 u1 c -- a2 u2 )    Skip characters until c is found
+screensize! ( w h -- )              Set size fields of screen device [GX]
+screensize@ ( -- w h )              Read size fields of screen device [GX]
+search      ( a1 u1 a2 u2 -- a3 u3 f ) Searches a1/u1 for a2/u2 and pushes the address and remaining length where it was found
+second      ( -- u )                Push current second [X]
+sign        ( n -- )                Emit sign of n during numeric conversion
+sliteral    ( a u -- )              Compile string literal
+snarf       ( a u -- )              Writes data to ".snarf" file [X]
+space       ( -- )                  Write space character
+spaces      ( u -- )                Write u spaces
+sprite      ( u -- )                Set sprite field of screen device [X]
+spritedata  ( a -- )                Set addr field of screen device [X]
+state       ( -- a )                Address of variable holding compilation state flag
+svector     ( xt -- )               Set vector of screen device [X]
+swap        ( x y -- y x )          Swap topmost stack values
+th          ( a1 u -- a2 )          Compute address of u th cell at a1
+then        ( -- )                  End of conditional [C]
+tib         ( -- a )                Text input buffer
+tick        ( -- )                  Called by screen-vector while waiting for input events [XD]
+theme       ( -- )                  Loads ".theme" file if it exists and sets system colors [X]
+thru        ( u1 u2 -- )            Load block range, ignores rest of line if interpreted [G]
+true        ( -- -1 )               Push literal -1
+tuck        ( x y -- y x y )        Tuck top stack value under 2nd
+type        ( a u -- )              Print string
+u.          ( u -- )                Print unsigned value
+u.r         ( u1 u2 -- )            Print unsigned value right-justified in u2 places
+u/          ( u1 u2 -- u3 )         Unsigned division
+u/mod       ( u1 u2 -- u3 u4 )      Unsigned division with rest in u3 and result in u4
+u<          ( u1 u2 -- f )          Unsigned less than
+u>          ( u1 u2 -- f )          Unsigned greater than
+umod        ( u1 u2 -- u3 )         Unsigned modulo
+under+      ( n1 x n2 -- n3 x )     Add n2 to third value on stack
+unloop      ( -- )                  Remove runtime counters for `do ... loop` loop
+until       ( f -- )                Test and repeat `begin ... until` loop [C]
+unused      ( -- u )                Available free space [X]
+variable    ( | <word> -- )         Define variable
+vocabulary  ( | <word> -- )         Define new empty vocabulary, invoke to replace current vocabulary
+vocs        ( -- )                  Print vocabulary stack, in order of search
+volume      ( u -- )                Set volume field of audio device [G]
+wait        ( -- )                  Waits for input events (never returns) [X]
+within      ( n1 n2 n3 -- f )       Pushes flag indicating whether n1 is between n2 and n3 (not inclusive)
+while       ( f -- )                Conditional in `begin ... while ... repeat` loop [C]
+word        ( c | ... <c> -- a )    Skip spaces and parse and return string delimited by c as address of counted string in dictionary
+words       ( -- )                  Print all words visible on vocabulary stack [X]
+xor         ( n1 n2 -- n3 )         Perform binary XOR
+yank        ( -- a u )              Reads contents of the file ".snarf" if it exists, uses `pad`, u may be 0 [X]
+year        ( -- u )                Push current year [X]
+|           ( -- )                  Equivalent to `exit then`
+
+Notes:
+
+[C]     Only available at compile time
+[G]     Only available in the graphical interface ("uf.rom"), implies [X]
+[X]     Available in "ufx.rom" and "uf.rom"
+[D]     Deferred word

@@ -1,0 +1,495 @@
+( Forth )
+
+%wst { #ea }
+%rst { #eb }
+
+|100
+
+    #0000 ;uxn STA2
+    #0002 DEO
+    ( check for stack mapping feature: )
+    #beef #02 DEI NIP NIP ,&nomap JCN
+    wst #02 DEO
+    rst #03 DEO
+    ;mreset ;resetv STA2
+    ;mclear ;clearv STA2
+    ;mdepth ;depthv STA2
+    #000b ;uxn STA2
+&nomap
+    #0000 ;pin STA2k POP2 ;plimit STA2k POP2
+    ;state STA2
+    ;&boot ;find JSR2 POP2 JMP2
+&boot 04 "boot
+
+@h0 03 "uxn 0000 ;_const JSR2 @uxn 0000
+@h1 04 "base :h0 ;_var JSR2 @base 000a
+
+@h2 06 "number :h1 @number
+    LIT2r 0000 #01 ;&sgn STA
+    DUP2 ;&addr STA2
+    ;count JSR2 OVR2 LDA #2d NEQ ,&loop JCN
+    #00 ;&sgn STA #0001 ;slashstring JSR2
+&loop
+    DUP2 #0000 EQU2 ,&done JCN
+    ,&ctake JSR ,&digit JSR NIP ,&ok JCN
+    POP2 POP2 POP2 POP2r ;&addr LDA2 #0000 JMP2r
+&ok
+    STH2r ,base LDR2 MUL2 ADD2 STH2
+    ,&loop JMP
+&done
+    POP2 POP2 STH2r
+    ;&sgn LDA ,&done2 JCN
+    #0000 SWP2 SUB2
+&done2
+    #ffff JMP2r
+&ctake  ( a n -- a2 n2 c )
+    OVR2 LDA STH #0001 ;slashstring JSR2 STHr #00 SWP JMP2r
+&digit  ( c -- n f )
+    DUP2 #0030 #003a ;within JSR2 ORA #00 EQU ,&d2 JCN 
+    #0030 SUB2 ,&range JMP
+&d2
+    DUP2 #0061 #007b ;within JSR2 ORA #00 EQU ,&d3 JCN 
+    #0057 SUB2 ,&range JMP
+&d3
+    DUP2 #0041 #005a ;within JSR2 ORA #00 EQU ,&d4 JCN 
+    #0037 SUB2 ,&range JMP
+&d4
+    #0000 JMP2r
+&range  ( n -- n f )
+    DUP2 ;base LDA2 LTH2 ,&rok JCN
+    #0000 JMP2r
+&rok
+    #ffff JMP2r
+&addr $02
+&sgn 00
+
+@h3 07 "/string :h2 @slashstring ( a n n2 -- a2 n2 )
+    STH2k SUB2 SWP2 STH2r ADD2 SWP2 JMP2r
+
+@h4 04 "vocs :h3 ( -- a ) ;_var JSR2 @vocs :dp :null :null :null @endvocs
+
+@h5 06 "within :h4 @within
+    OVR2 SUB2 STH2 SUB2 STH2r LTH2 DUP JMP2r
+
+@h6 04 "find :h5 @find
+    STH2 ;vocs
+&vloop
+    LDA2k LDA2
+&loop
+    ORAk ,&next JCN
+    POP2 INC2 INC2 ;endvocs EQU2k ,&fail JCN
+    POP2 ,&vloop JMP
+&fail
+    POP2 POP2
+    STH2r #0000 JMP2r
+&next
+    DUP2 ;count JSR2 #7f AND STH2kr ;count JSR2
+    ,compare JSR NIP ,&other JCN
+    POP2r LDAk STHk #3f AND #03 ADD #00 SWP ADD2
+    STHr #80 AND ,&imm JCN
+    NIP2 #ffff JMP2r
+&imm
+    NIP2 #0001 JMP2r
+&other
+    LDAk #3f AND INC #00 SWP ADD2 LDA2 ,&loop JMP
+
+@h7 07 "compare :h6 @compare
+    ,&len2 STR2 SWP2 ,&len1 STR2k POP
+    ,&len2 LDR2 LTH2k JMP SWP2 POP2 STH2
+&loop
+    STH2kr ORA ,&next JCN
+    POP2 POP2 POP2r
+    ,&len1 LDR2 ,&len2 LDR2 SUB2 JMP2r
+&next
+    LIT2r 0001 SUB2r
+    SWP2 LDAk STH INC2 SWP2 LDAk STH INC2
+    SUBr STHkr ,&diff JCN
+    POPr ,&loop JMP
+&diff
+    POP2 POP2 STHr POP2r ,sext JMP
+&len1 $02 &len2 $02
+
+@sext
+    DUP #80 AND ,&neg JCN #00 SWP JMP2r
+&neg
+    #ff SWP JMP2r
+
+@h8 05 "reset :h7 @reset LIT2k @resetv :&dreset JMP2
+&dreset
+    STH2r
+    #0003 DEO 
+    JMP2
+@mreset
+    STH2r 
+    #00 rst #ff STA
+    JMP2
+
+@h9 05 "clear :h8 @clear LIT2k @clearv :&dclear JMP2
+&dclear
+    #0002 DEO
+    JMP2r
+@mclear
+    #00 wst #ff STA
+    JMP2r
+
+@h10 05 "query :h9 @query ;&vec JMP2 &vec
+    ;tib #0400 ;accept JSR2 ;tib ADD2 ;plimit STA2 
+    ;tib ;pin STA2 JMP2r
+
+@h11 03 "tib :h10 ;_var JSR2 @tib $0400
+@h12 03 ">in :h11 ;_var JSR2 @pin 0000
+@h13 06 ">limit :h12 ;_var JSR2 @plimit 0000
+
+@h14 06 "accept :h13 @accept
+    ,&getn STR2 ,&input STR2 #0000 ,&all STR2
+&loop
+    ;key JSR2 NIP DUP #0a EQU ,&nl JCN
+    ,&input LDR2 STAk INC2 ,&input STR2 POP
+    ,&all LDR2 INC2 DUP2 ,&all STR2 ,&getn LDR2 EQU2 ,&done JCN
+    ,&loop JMP
+&nl
+    POP
+&done
+    ,&all LDR2 JMP2r
+&all 0000    
+&getn 0000
+&input 0000
+
+@h15 04 "quit :h14 @quit
+    ;reset JSR2 ;clear JSR2
+&loop
+    ;query JSR2 ,interpret JSR ,prompt JSR
+    ,&loop JMP
+
+@h16 08 "(prompt) :h15
+    ;&prompt #0004 ,type JMP
+&prompt 20 "ok 0a
+
+@h17 06 "prompt :h16 @prompt ;noop JMP2
+
+@h18 04 "type :h17 @type
+    ORAk ,&next JCN
+    POP2 POP2 JMP2r
+&next
+    #0001 SUB2 SWP2 LDAk #00 SWP ;emit JSR2 INC2 SWP2
+    ,type JMP
+
+@h19 09 "interpret :h18 @interpret
+    #0020 ;word JSR2 LDAk ,&next JCN
+    POP2 JMP2r
+&next
+    ;find JSR2 NIP ,&exec JCN
+    ;number JSR2 NIP ,interpret JCN
+    ,undefd JMP
+&exec
+    JSR2 ,interpret JMP
+
+@h20 05 "count :h19 @count
+    LDAk STH INC2 STHr #00 SWP JMP2r
+
+@h21 06 "undefd :h20 @undefd
+    #0020 ;emit JSR2  ;count JSR2 ;type JSR2 
+    ;&qnl #0003 ;type JSR2 ,abort JMP
+&qnl
+    20 "? 0a
+
+@h22 05 "abort :h21 @abort ;abort0 JMP2
+@h22a 07 "(abort) :h22 @abort0
+    #0000 ;state STA2 #000a ;base STA2 
+    ;only JSR2 ;quit JMP2
+
+@h23 05 "state :h22a ;_var JSR2 @state 0000
+
+@h24 04 "word :h23 @word    ( c | ... -- a )
+    ;getc JSR2 NIP
+    DUP #20 EQU ,&loop JCN
+    DUP #09 EQU ,&loop JCN
+    POP ;pin LDA2k #0001 SUB2 SWP2 STA2
+    ;parse JSR2 ;&wbuf ;place JSR2 ;&wbuf JMP2r
+&loop
+    POP ,word JMP
+&wbuf $40
+
+@h25 05 "place :h24 @place  ( a1 n a2 -- )
+    OVR2 OVR2 STH2 STH2 INC2 SWP2 ;cmove JSR2 
+    STH2r NIP STH2r STA JMP2r
+
+@h26 05 "cmove :h25 @cmove  ( a1 a2 n -- )
+    SWP2 STH2
+&loop
+    ORAk ,&next JCN
+    POP2 POP2 POP2r JMP2r
+&next
+    SWP2 LDAk STH2r STAk INC2 STH2 POP
+    INC2 SWP2 #0001 SUB2 ,&loop JMP
+
+@h27 05 "parse :h26 @parse  ( c | ... -- a u )
+    ;pin LDA2 STH2
+&loop
+    ;pin LDA2 ;plimit LDA2 LTH2 #00 EQU ,&end JCN
+    ,getc JSR EQU2k ,&end2 JCN
+    POP2 ,&loop JMP
+&end
+    POP2 STH2r
+    ;pin LDA2 OVR2 SUB2 JMP2r
+&end2    
+    POP2 POP2 STH2r ;pin LDA2 OVR2 SUB2 #0001 SUB2 JMP2r
+
+@h28 04 "getc :h27 @getc    ( -- c )
+    ;pin LDA2 LDAk STH INC2 ;pin STA2 STHr #00 SWP JMP2r   
+
+@h35 03 "deo :h28 ( c d -- ) NIP ROT POP DEO JMP2r
+@h36 03 "dei :h35 ( d -- c ) NIP DEI #00 SWP JMP2r
+@h37 04 "deo2 :h36 ( n d -- ) NIP DEO2 JMP2r
+@h38 04 "dei2 :h37 ( d -- n ) NIP DEI2 JMP2r
+@h39 01 "h :h38 ;_var JSR2 @h :here
+@h40 04 "noop :h39 @noop JMP2r
+
+@h41 04 "head :h40 @head ( | <word> -- )
+    #0020 ;word JSR2
+    ;count JSR2
+    ;h LDA2 STH2
+    #1f AND STHk ;h LDA2 ;place JSR2
+    STHr INC #00 SWP ;allot JSR2
+    ;current LDA2 LDA2 ;comma JSR2
+    STH2r ;current LDA2 STA2 
+    JMP2r
+
+@h42 02 "dp :h41 ;_var JSR2 @dp :htop :&forth 0000
+&forth 05 "forth
+@h43 07 "current :h42 ;_var JSR2 @current :dp
+
+@h44 04 "also :h43 @also
+    ;vocs #0004 ADD2 ,&copy JSR
+    #0002 SUB2 ,&copy JSR
+    #0002 SUB2 ,&copy JSR
+    POP2 JMP2r
+&copy
+    LDA2k OVR2 INC2 INC2 STA2 JMP2r
+
+@h44a 09 "jumpaddr, :h44 @cjumpaddr
+    DUP2 ;h LDA2 INC2 INC2 INC2 SUB2 #ff80 LTH2k ,&long JCN
+    POP2 LITk LITk SWP ,comma JSR POP POP2 #0000 JMP2r
+&long
+    POP2 POP2 LITk LIT2k ,ccomma1 JSR ,comma JSR #0001 JMP2r
+
+@h45 08 "compile, :h44a @compilecomma 
+    ,cjumpaddr JSR NIP ,&long JCN
+    LITk JSR ,ccomma1 JMP
+&long
+    LITk JSR2 ,ccomma1 JMP
+
+@h46 01 ", :h45 @comma  ;h LDA2 STA2k NIP2 INC2 INC2 ;h STA2 JMP2r
+@h47 02 "c, :h46  NIP @ccomma1 ;h LDA2 STAk INC2 ;h STA2 POP JMP2r
+@h48 05 "allot :h47 @allot  ( n -- ) ;h LDA2k ROT2 ADD2 SWP2 STA2 JMP2r
+
+@h49 01 "' :h48
+    #0020 ;word JSR2 ;find JSR2 ORA ,&found JCN
+    ;undefd JMP2
+&found
+    JMP2r
+
+@h50 0a "(variable) :h49 @_var  STH2r JMP2r
+@h51 0a "(constant) :h50 @_const STH2r LDA2 JMP2r
+
+@h52 0b "compilejmp, :h51
+    ;cjumpaddr JSR2 ,&long JCN
+    LITk JMP ,ccomma1 JMP
+&long
+    LITk JMP2 ,ccomma1 JMP
+
+@h54 01 ": :h52 ( | <word> ... -- )
+    ;head JSR2 ;smudge JSR2 ;also JSR2 ;compiler JSR2 
+    ,compile JMP
+
+@h55 04 "null :h54 ;_var JSR2 @null 0000 0000
+
+@h56 09 "(compile) :h55 @compile
+    #ffff ;state STA2
+&loop
+    #0020 ;word JSR2 LDAk ,&cont JCN
+    POP2 ;query JSR2 ,&loop JMP
+&cont
+    ;find JSR2 ORAk ,&found JCN
+    POP2 ;number JSR2 ORA ,&num JCN
+    ;undefd JMP2
+&num
+    LITk LIT2k ;ccomma1 JSR2 ;comma JSR2
+    ,&loop JMP
+&found
+    #0001 EQU2 ,&imm JCN
+    ;compilecomma JSR2
+    ,&loop JMP
+&imm
+    JSR2 ;state LDA2 ORA ,&loop JCN
+    ,previous JMP
+
+@h56a 08 "previous :h56 @previous
+    ;null STH2 ;endvocs
+&restore
+    #0002 SUB2 ;vocs LTH2k ,&done JCN
+    POP2 LDA2k STH2 SWP2r STH2r SWP2 STA2k NIP2
+    ,&restore JMP
+&done
+    POP2r POP2 POP2 JMP2r
+
+@h57 03 "cdp :h56a ;_var JSR2 @cdp 0000 :&compiler :dp
+&compiler  ( hack: use following counted string )
+@h58 08 "compiler :h57 @compiler ;cdp ;vocs STA2 JMP2r
+
+@h59 81 "; :h58
+    LITk JMP2r ;ccomma1 JSR2
+    #0000 ;state STA2 
+    ;reveal JMP2
+
+@h60 06 "smudge :h59 @smudge 
+    ;current LDA2 LDA2 LDAk #40 ORA ROT ROT STA JMP2r
+
+@h61 06 "reveal :h60 @reveal 
+    ;current LDA2 LDA2 LDAk #bf AND ROT ROT STA JMP2r
+
+@h63 09 "immediate :h61 ;current LDA2 LDA2 LDAk #80 ORA ROT ROT STA JMP2r
+@h64 06 "lshift :h63 NIP #40 SFT SFT2 JMP2r
+@h65 06 "rshift :h64 NIP #0f AND SFT2 JMP2r
+@h66 06 "(slit) :h65 STH2kr INC2 STH2r LDAk #00 SWP SWP2 OVR2 INC2 ADD2 JMP2
+@h67 04 "tuck :h66 STH2k SWP2 STH2r JMP2r
+
+@h68 04 "(if) :h67
+    STH2r SWP2 ORA ,&nobranch JCN
+    LDA2 JMP2
+&nobranch
+    INC2 INC2 JMP2
+
+@h69 06 "(else) :h68  STH2r LDA2 JMP2
+@h72 05 "u/mod :h69 DIV2k STH2k MUL2 SUB2 STH2r JMP2r
+@h73 04 "umod :h72 DIV2k MUL2 SUB2 JMP2r
+
+@h74 04 "fill :h73
+    STH POP
+&loop
+    ORAk ,&cont JCN
+    POP2 POP2 POPr JMP2r
+&cont
+    STHkr DUP ROT2 STAk NIP2 INC2 SWP2
+    #0001 SUB2 ,&loop JMP
+
+@h76 04 "emit :h74 @emit ;&vec JMP2 &vec NIP #18 DEO JMP2r
+
+@h77 03 "key :h76 @key ;&vec JMP2 &vec 
+    ;&getkey #10 DEO2 BRK
+&getkey
+    #12 DEI #0000 #10 DEO2 #00 SWP JMP2r
+
+@h78 01 "< :h77
+    #8000 ADD2 SWP2 #8000 ADD2 GTH2 DUP
+    JMP2r
+
+@h79 01 "> :h78
+    #8000 ADD2 SWP2 #8000 ADD2 LTH2 DUP
+    JMP2r
+
+@h80 06 "(loop) :h79 
+    STH2r SWP2 STH2 ADD2r GTH2kr STHr ,&loop JCN
+    POP2r POP2r #00 ROT ROT JMP2
+&loop
+    #01 ROT ROT JMP2
+
+@h81 01 "i :h80 SWP2r STH2kr SWP2r JMP2r
+@h82 01 "j :h81 STH2r STH2r STH2r STH2kr SWP2 STH2 SWP2 STH2 SWP2 JMP2
+@h83 0b "definitions :h82 ;vocs LDA2 ;current STA2 JMP2r
+
+@h85 04 "only :h83 @only
+    ;dp ;vocs STA2k NIP2 ;null SWP2 
+    INC2 INC2 STA2k INC2 INC2 STA2k INC2 INC2 STA2 JMP2r
+
+@h86 04 "?dup :h85 ORAk #00 EQU JMP DUP2 JMP2r
+
+@h87 06 "cmove> :h86
+    STH2k ADD2 SWP2 STH2r SWP2 STH2k ADD2
+&loop
+    #0001 SUB2
+    STH2kr LTH2k ,&done JCN
+    POP2 LDAk DUP ROT2 #0001 SUB2 STAk NIP2 SWP2
+    ,&loop JMP
+&done
+    POP2r POP2 POP2 POP2 JMP2r
+
+@h88 03 "abs :h87 @abs
+    DUP2 #8000 AND2 POP ,&neg JCN
+    JMP2r
+&neg
+    #0000 SWP2 SUB2
+    #00 ,divsign STR
+    JMP2r
+@divsign 00
+
+@h89 01 "/ :h88
+    #01 ,divsign STR
+    SWP2 ,abs JSR
+    SWP2 ,abs JSR
+    DIV2
+    ,divsign LDR ,&next JCN
+    #0000 SWP2 SUB2
+&next
+    JMP2r
+
+@h89a 04 "/mod :h89
+    #01 ,divsign STR
+    SWP2 ,abs JSR
+    SWP2 ,abs JSR
+    DIV2k STH2k MUL2 SUB2 
+    ,divsign LDR ,&next1 JCN
+    #0000 SWP2 SUB2
+&next1
+    STH2r
+    ,divsign LDR ,&next2 JCN
+    #0000 SWP2 SUB2
+&next2
+    JMP2r
+
+@h90 03 "mod :h89a
+    SWP2 ,abs JSR
+    SWP2 ,abs JSR
+    DIV2k MUL2 SUB2 JMP2r
+
+@h91 09 "(loadrom) :h90
+    ;&start #0010 ;&end ;&start SUB2 ;cmove JSR2
+    #0010 JMP2
+&start
+    #ff00 #aa DEO2
+    #0100 #ac DEO2 #a2 DEI2 ORA ,&ok JCN
+    ;&fail #0013 ;type JSR2  ;abort JMP2
+&ok
+    #0100 JMP2
+&end
+&fail "loading 20 "rom 20 "failed 0a
+
+@h92 05 "depth :h91 LIT2k @depthv :&ddepth JMP2
+&ddepth
+    #02 DEI #01 SFT #00 SWP
+    JMP2r
+@mdepth
+    wst #ff LDA #01 SFT #00 SWP
+    JMP2r
+
+@h93 04 "pick :h92
+    DUP ,&n STR
+&loop
+    DUP ,&next JCN
+    POP2  DUP2
+    ,&n LDR DUP
+&rloop
+    DUP ,&next2 JCN
+    POP2 JMP2r
+&next2
+    STH2r ROT2 ROT2
+    #01 SUB
+    ,&rloop JMP
+&next
+    SWP2 STH2
+    #01 SUB
+    ,&loop JMP
+&n 00
+
+@htop 04 "boot :h93 ;prompt JSR2 ;quit JMP2
+@here

@@ -1,0 +1,306 @@
+
+                          
+                    88        88 88888888888  
+                    88        88 88           
+                    88        88 88           
+                    88        88 88aaaaa      
+                    88        88 88"""""      
+                    88        88 88           
+                    Y8a.    .a8P 88           
+                     `"Y8888Y"'  88           
+
+
+Version: 3
+
+
+I. Introduction
+
+This is a traditional Forth system for the "uxn/varvara"[1] virtual
+computer. "UF" is written in Tal[2] and itself and provides an
+interactive text interface and screen editor. The implementation
+strategy is a mixture of subroutine-threading and native code
+generation, but currently only minimal optimizations are performed.
+The mapping of Forth source code to VM instructions is nevertheless
+relatively direct, so performance should be more than sufficient
+in all but the most speed-critical situations. Cells are 16 bits,
+the full system uses around 20K of memory, with another 4K needed
+for screen memory and buffers.
+
+
+II. Building Uf
+
+To build the .rom files, you need to first assemble the kernel and
+then use it to generate additional .rom files with more functionality:
+
+    $ uxnasm kernel.tal kernel.rom
+    ...
+    $ uxncli kernel.rom <uf.f
+
+This will produce the following files:
+
+    kernel.rom
+
+        The kernel, containing minimal functionality to define new
+        words.
+
+    uf0.rom
+
+        The kernel and core words.
+
+    ufx.rom
+
+        The functionality of "uf0.rom" together with words to access
+        varvara device ports in a more convenient matter, and some
+        basic tools (like `dump`).
+
+    uf.rom
+
+        The full graphical Forth system, including the block editor.
+
+
+III. Using Uf
+
+Run "uf0.rom" and "ufx.rom" with "uxncli" as a normal terminal
+application. "uf.rom" should be executed with "uxnemu":
+
+    uxnemu uf.rom <arguments ...>
+
+Additional command line arguments or console input will be redirected
+to the graphical input prompt and can be used to perform initialization,
+etc.
+
+In the graphical interface the following key sequences have a special
+meaning ("^" meaning the Control key):
+
+    ^a      Jump to beginning of line
+    ^e      Jump to end of line
+    ^c      Terminate Forth (unless a modified block is open in the 
+            editor)
+    ^d      Delete next char
+    ^n      Jump to next block
+    ^p      Jump to previous block
+    ^k      Kill to end of line (and write to ".snarf" file)
+    ^u      Kill to beginning of line (and snarf)
+    ^x      Copy line or marked region to ".snarf" file
+    ^v      Paste contents of ".snarf" file
+    ^s      Save changes in currently edited block
+    ^i      Print stacks on console
+    ^l      Clear screen (unless in editor)
+    ^h      Switch between source and documentation blocks (#1000+)
+    ^ENTER  Toggle region mark on/off in editor
+
+The arrow keys have the usual meaning. Pressing ENTER will execute
+the current line (marked by the cursor). Pressing ^ENTER will
+toggle "mark" mode, all lines between the start of the mark and
+the current row are copied and written to a file named ".snarf"
+in the current directory once you press ENTER or ^x. 
+
+Pressing the first mouse button will reposition the cursor. Pressing
+the third button will execute the word below the mouse pointer.
+
+File system access is provided by "block" files, where each block
+is named by a natural number and contains 2496 bytes (39 lines with
+64 columns). To edit a block, enter
+
+    <blocknumber> edit
+
+The Escape key will exit or enter editing (unless the current block
+is modified). The bottom row contains counters indicating current
+row, column, block number, the amount of dictionary space left and
+a marker indicating whether the current block is modified. Blocks
+can be loaded using `load` and `thru`. Note that block-loading is
+done by temporarily changing the word for reading user-input (`query`)
+and takes effect when the current input line has been fully processed.
+
+You can also edit a block by clicking with button 3 on a string of
+the form "#nnnn" where "nnnn" is a decimal integer.
+
+If a 6 byte file named ".theme" is found in the current directory,
+then it will be used to initialize the color scheme during startup.
+
+The current state of the system can be conveniently stored as a
+.rom file on disk by entering
+
+    save <filename>
+
+The saved rom has the exact same state (but with cleared stacks)
+as when it was created. During startup, the deferred word `boot`
+is invoked, you can redefine it to replace it with custom startup
+code.
+
+You are also heavily encouraged to consult the source code in "uf.f".
+
+
+IV. Compatibility to other Forths
+
+Consult the "GLOSSARY" file for a list of supported Forth words.
+The dialect implemented in "uf" is mostly compatible to the Forth
+2012 Standard[3]. Notable differences include:
+
+- The system is case-sensitive (`Abc` and `abc` name two different
+  words)
+
+- `do` and `?do` treat the index and range as unsigned quantities.
+
+- Numeric conversion in `<# ... #>` exclusively deals with single
+  cell numbers.
+
+- Double-word maths are currently not implemented.
+
+- Words that produce boolean results may not always generate -1
+  (`true`) but some other non-zero value.
+
+The dictionary can be inspected with the `words` and `.vocs` words.
+To decompile built-in or user words, use `see`.
+
+
+V. The integrated Assembler
+
+You can define words containing a simplifed form of Uxntal using the
+`code` and `end-code` words. Inside such a definition, the following
+words have a special meaning:
+
+    BRK INC ...             assemble uxn op-instruction
+    " k r                   add modifier bit to previous instruction
+    $           ( u -- )    pad by number of bytes on stack
+    #           ( c -- )    assemble byte literal
+    #"          ( x -- )    assemble short literal
+    &           ( u -- )    define label
+    ,           ( u -- )    reference previously defined label as relative
+                            branch distance
+
+Currently only 16 labels can be defined. You can insert absolute
+references to other Forth words using the sequence `' <word> #"`.
+Note that the stack is required to be aligned to shorts and that
+code-words should perform the equivalent of a "JMP2r" to return to
+the caller.
+
+An example:
+
+    code bitcount8 ( x^ -- n^ )
+        0 # SWP ( n x )
+        1 &
+        DUP 0 # EQU ( n x x=0 )
+        2 , JCN ( n x )
+        1 # SFT ( n x>>1 )
+        SWP INC SWP ( n+1 x>>1 )
+        1 , JMP
+        2 &
+        POP ( n )
+        JMP " r
+    end-code
+
+
+VI. Memory Map
+
+   FFFF +----------------------------+
+        |       Screen buffer        |
+   F600 +----------------------------+
+        |     Block load buffer      |
+   ec40 +----------------------------+
+        |    Return stack (uxn11)    |
+   eb00 +----------------------------+
+        |    Working stack (uxn11)   |
+   ea00 +----------------------------+
+        |                            |
+        |        Unused space        |
+        |                            |
+        +----------------------------+ < `here`
+        |     User defined words     |
+        +----------------------------+
+        |          Kernel            |
+   0100 +----------------------------+
+        |          Unused            |
+   0000 +----------------------------+
+
+The dictionary layout is as follows:
+
+    [<count>, <name...>, <link>, <code...>]
+
+where the byte <count> holds the name of the word (only 31 characters
+are significant), <name...> holds the name and <link> holds a 2-byte
+pointer to the next word in the dictionary (or zero). The link field
+is directly followed by the native code invoked when the word is
+executed. 
+
+Uf allows up to 4 vocabularies to be active at the same time. You
+can see the currently available words by executing `words` and
+inspect the vocabulary stack with `.vocs`. Predefined vocabularies
+are `forth` (the default), `compiler` (words only available during
+compilation of colon words), `assembler`, `decompiler` and `editor`.
+
+
+VIII. Uxn VM implementation Issues
+
+Uf has been tested on SDL uxn[4] and uxn11[5].
+
+Uxn11 currently has different semantics of the "wst"/"rst" system
+device ports, requiring to map the stacks into the normal memory,
+where the working stack is located in the zeropage and the return
+stack in high memory.
+
+In the graphical interface the controller, console and mouse device
+vectors are modified to receive input events. During evaluation of
+code the vectors are temporarily cleared and a BRK or machine halt
+will abort with an error and return to the Forth prompt. Calls to
+`pause` override the screen device vector temporarily which is
+cleared on return. If you want to modify any of these vectors
+permanently, make sure your code does not return to the interactive
+prompt or use `wait`, which invokes the deferred word `tick`, which
+you can modify to perform custom processing (the default implementation
+just blinks the cursor).
+
+The graphical system sets the screen size to the default 512x320
+resolution which must be supported by the underlying uxn implementation.
+
+A number of words are defined to access varvara devices, consult
+the GLOSSARY for more details:
+
+System:
+    .s  colors
+
+Console:
+    cin  cout  ctype  cvector
+
+Screen:
+    screensize@  screensize!  position  pixel  auto  spritedata
+    sprite  svector
+
+Audio:
+    sample  play  adsr  volume  output
+
+Controller:
+    jkey  jbutton  jvector
+
+Mouse:
+    mouse  mscroll  mstate  mvector
+
+File:
+    filename  filewrite  fileappend  fileread  filedelete
+
+Datetime:
+    year  month  day  hour  minute  second  dotw  doty  isdst
+
+
+IX. License
+
+This software was written by Felix L. Winkelmann and has been
+released into the public domain. Do with it whatever you want.
+
+
+X. Contact Information
+
+This software will have many bugs and shortcomings. In case you
+need help, have suggestions or ideas, please do not hesitate to
+contact the author at
+
+    felix AT call-with-current-continuation DOT org
+
+
+XI. References
+
+[1] https://100r.co/site/uxn.html
+[2] https://wiki.xxiivv.com/site/uxntal.html
+[3] https://forth-standard.org/
+[4] https://git.sr.ht/~rabbits/uxn
+[5] https://git.sr.ht/~rabbits/uxn11

@@ -1,0 +1,9 @@
+#!/usr/bin/rc
+v = `{cat VERSION}
+dir = uf-^$v
+mkdir -p $dir/examples
+for(f in ``$ifs(3){cat MANIFEST}) {
+    cp -v $f $dir/$f
+}
+tar cfz uf-^$v^.tgz $dir
+rm -fr $dir
