@@ -27,7 +27,7 @@ the full system uses around 20K of memory, with another 4K needed
 for screen memory and buffers.
 
 
-II. Building Uf
+II. Building UF
 
 To build the .rom files, you need to first assemble the kernel and
 then use it to generate additional .rom files with more functionality:
@@ -58,7 +58,7 @@ This will produce the following files:
         The full graphical Forth system, including the block editor.
 
 
-III. Using Uf
+III. Using UF
 
 Run "uf0.rom" and "ufx.rom" with "uxncli" as a normal terminal
 application. "uf.rom" should be executed with "uxnemu":
@@ -134,7 +134,7 @@ You are also heavily encouraged to consult the source code in "uf.f".
 IV. Compatibility to other Forths
 
 Consult the "GLOSSARY" file for a list of supported Forth words.
-The dialect implemented in "uf" is mostly compatible to the Forth
+The dialect implemented in UF is mostly compatible to the Forth
 2012 Standard[3]. Notable differences include:
 
 - The system is case-sensitive (`Abc` and `abc` name two different
@@ -150,8 +150,8 @@ The dialect implemented in "uf" is mostly compatible to the Forth
 - Words that produce boolean results may not always generate -1
   (`true`) but some other non-zero value.
 
-The dictionary can be inspected with the `words` and `.vocs` words.
-To decompile built-in or user words, use `see`.
+The dictionary can be inspected with the `words`, `order` and `.vocs` 
+words. To decompile built-in or user words, use `see`.
 
 
 V. The integrated Assembler
@@ -232,7 +232,7 @@ compilation of colon words), `assembler`, `decompiler` and `editor`.
 
 VIII. Uxn VM implementation Issues
 
-Uf has been tested on SDL uxn[4] and uxn11[5].
+UF has been tested on SDL uxn[4] and uxn11[5].
 
 Uxn11 currently has different semantics of the "wst"/"rst" system
 device ports, requiring to map the stacks into the normal memory,
@@ -257,7 +257,7 @@ A number of words are defined to access varvara devices, consult
 the GLOSSARY for more details:
 
 System:
-    .s  colors
+    colors
 
 Console:
     cin  cout  ctype  cvector
@@ -296,6 +296,9 @@ contact the author at
 
     felix AT call-with-current-continuation DOT org
 
+A git repository can be found at [6], if you want to follow the
+development of the system more closely.
+
 
 XI. References
 
@@ -304,3 +307,4 @@ XI. References
 [3] https://forth-standard.org/
 [4] https://git.sr.ht/~rabbits/uxn
 [5] https://git.sr.ht/~rabbits/uxn11
+[6] https://gitlab.com/b2495/uf
