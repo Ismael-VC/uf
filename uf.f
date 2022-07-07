@@ -294,10 +294,12 @@ only definitions
 : heaptop  uxn  if  h# ea00  else  h# ec40  then ;
 : unused  heaptop here - ;
 
+variable /snarfed
 : apply-theme  ( a -- ) @+ swap @+ swap @+ nip colors ;
 : theme  s" .theme" filename  pad 6 fileread  if
     pad apply-theme  then ;
-: snarf  ( a u -- ) s" .snarf" filename filewrite drop ;  
+: snarf  ( a u -- ) dup /snarfed !
+  s" .snarf" filename filewrite drop ;  
 : yank  ( -- a u ) s" .snarf" filename
   pad  unused 4000 min  fileread  pad swap ;
 
@@ -609,7 +611,7 @@ variable rows   variable columns
 variable screen  variable loadbuf
 variable locked     variable mark
 variable pointerx   variable pointery
-variable modified   variable /snarfed
+variable modified
 defer noedit  ( -- f )
 defer terminate     defer page
 512 constant width      320 constant height
@@ -619,6 +621,7 @@ defer terminate     defer page
 : /block  ( -- u ) /screen columns @ - ;
 : point  ( -- r c ) row @ col @ ;
 : >screen  ( r c -- a ) swap columns @ * + screen @ + ;
+: >row  ( r -- a ) 0 >screen ;
 : at  ( r c -- ) 3 lshift  swap 3 lshift  position ;
 : locate  point at ;
 : line  ( -- a u ) point >screen  columns @ col @ - ;
@@ -647,7 +650,7 @@ create default-theme  h# 0b75 , h# 0da6 , h# 0db8 ,
   bl - 3 lshift font + spritedata ;
 
 : drawchar  ( c -- ) glyph  textcolor @ sprite ;
-: drawrow  ( row -- ) dup  0 at  dup>r 0 >screen  1 auto
+: drawrow  ( row -- ) dup  0 at  dup>r >row  1 auto
   r> marked?  if  reverse  else 
     dup c@ [char] \ =  if  highlite  then  then
   columns @  0  do  count drawchar  loop  drop  normal ;
@@ -675,17 +678,17 @@ variable cursorcol  2 cursorcol !
     i 0 at  columns @  0  do  h# 40 sprite  loop  
   loop ;
 : redraw  clrscr  rows @  0  do  i drawrow  loop ;
-: scroll  1 0 >screen  screen @  columns @ rows @ 1- * cmove
-  rows @ 1- 0 >screen columns @ blank  redraw ;
+: scroll  1 >row  screen @  columns @ rows @ 1- * cmove
+  rows @ 1- >row columns @ blank  redraw ;
 : newline  locked @  if  1 cursor  |
   col off  row @ 1+ dup rows @ =  if  drop  scroll  
   else  row !  then  1 cursor ;
-: scrolldown  row @ 1+ 0 >screen dup columns @ +
+: scrolldown  row @ 1+ >row dup columns @ +
   rows @ 2 - row @ - columns @ * cmove>
-  row @ 1+ 0 >screen columns @ blank ;
-: scrollup  ( row -- ) dup>r 1+ 0 >screen dup columns @ -
+  row @ 1+ >row columns @ blank ;
+: scrollup  ( row -- ) dup>r 1+ >row dup columns @ -
   rows @ 2 - r> - columns @ *  cmove  
-  rows @ 2 - 0 >screen columns @ blank ;
+  rows @ 2 - >row columns @ blank ;
 
 \ mark, snarf + yank
 : toggle-mark  0 cursor
@@ -693,27 +696,32 @@ variable cursorcol  2 cursorcol !
   redraw  1 cursor ;
 : redraw/mark  mark @  if  redraw  then ;
 : snarf-lines  here >r  mark @ 1- row @ range 1+  swap  do
-    i 0 >screen columns @ -trailing >r here r@ cmove 
+    i >row columns @ -trailing >r here r@ cmove 
     r> allot  10 c,
-  loop  r@ dup here diff dup /snarfed ! snarf  r> h ! ;
+  loop  r@ dup here diff snarf  r> h ! ;
 : copy-marked  mark @  if  snarf-lines    mark off  redraw  |
-  row @ 0 >screen columns @ -trailing dup /snarfed ! snarf ;
+  row @ >row columns @ -trailing snarf ;
+: cut-marked  snarf-lines
+  mark @ 1- row @ range  over row !
+  1+ swap  ?do  row @ scrollup  loop 
+  mark off  redraw ;
 : endpaste  redraw  1 cursor  modified on ;
 : nextline  ( a1 u1 -- a2 u2 a3 u3 )
   over >r 10 scan  over r@ - r> swap ;
-: paste  0 cursor  yank  begin
-    row @ rows @ 1- =  if  2drop  endpaste  |
+: paste  0 cursor  yank  col off  begin
+    row @ rows @ 1- =  if  -1 row +!  2drop  endpaste  |
     ?dup 0=  if  drop  endpaste  |
-     nextline  row @ 0 >screen  swap 64 min cmove
+    nextline  row @ >row  swap 64 min dup>r cmove
+    row @ r@ >screen r> 64 diff blank
     1 row +!  dup  if  1 /string  then
   again ;
 
 : split  row @ rows @ 3 - >= ?exit  0 cursor
-  scrolldown  line >r  row @ 1+ 0 >screen r> cmove
+  scrolldown  line >r  row @ 1+ >row r> cmove
   line blank  col off  1 row +!  modified on  redraw ;
 : enter
   locked @  if  split  1 cursor  |  0 cursor  
-  row @ 0 >screen columns @ -trailing prepare  newline ;
+  row @ >row columns @ -trailing prepare  newline ;
 : advance  col @ 1+ dup columns @ =  if  drop  newline  |  
   col !  1 cursor ;
 : insert  ( c -- ) col @ columns @ =  if  drop  |
@@ -727,7 +735,7 @@ variable cursorcol  2 cursorcol !
 : blankend  bl row @ columns @ 1- >screen c! 
   row @ drawrow  1 cursor  modified on ;
 : backup  row @ 0= ?exit  0 cursor
-  line drop  row @ 1- 0 >screen columns @ -trailing dup col ! dup>r +
+  line drop  row @ 1- >row columns @ -trailing dup col ! dup>r +
     columns @ r> -  cmove  row @ scrollup  -1 row +!
   modified on  redraw  1 cursor ;
 : rubout  col @ 0=  if  locked @  if  backup  then  |
@@ -736,7 +744,7 @@ variable cursorcol  2 cursorcol !
   0 cursor  line 1- >r dup 1+ swap r> cmove  blankend ;
 : top  0 cursor  row off  1 cursor ;
 : start  0 cursor  col off  1 cursor ;
-: end  0 cursor  row @ 0 >screen columns @ -trailing nip
+: end  0 cursor  row @ >row columns @ -trailing nip
   columns @ 1- min col !  1 cursor ;
 : tab  0 cursor  col @ dup>r tabwidth u/ 1+ tabwidth *
   columns @ 1- min col !
@@ -744,14 +752,17 @@ variable cursorcol  2 cursorcol !
     columns @ col @ - cmove>
   bl fill  
   row @ drawrow  1 cursor ;
-: rkill  0 cursor  line -trailing
+: rkill  0 cursor  mark @  if  cut-marked  |
+  line -trailing
   dup col @ or 0=  if
     2drop  row @ scrollup  redraw  else
     2dup snarf blank  row @ drawrow  then
   1 cursor  modified on ;
 : lkill  col @ columns @ 1- = ?exit 
-  0 cursor  line >r dup col @ - r> cmove
-  line drop columns @ col @ - 2dup snarf blank  col off
+  0 cursor  mark @  if  cut-marked  |
+  row @ >row col @ 2dup snarf 
+  line  row @ >row  swap  cmove
+  dup>r + columns @ r> - blank  col off
   row @ drawrow  1 cursor  modified on ;
 
 variable dirty

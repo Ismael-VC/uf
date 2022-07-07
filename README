@@ -79,8 +79,9 @@ meaning ("^" meaning the Control key):
     ^d      Delete next char
     ^n      Jump to next block
     ^p      Jump to previous block
-    ^k      Kill to end of line (and write to ".snarf" file)
-    ^u      Kill to beginning of line (and snarf)
+    ^k      Kill to end of line or marked region (and write to 
+            ".snarf" file)
+    ^u      Kill to beginning of line or marked region (and snarf)
     ^x      Copy line or marked region to ".snarf" file
     ^v      Paste contents of ".snarf" file
     ^s      Save changes in currently edited block
