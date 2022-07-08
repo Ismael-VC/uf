@@ -672,7 +672,7 @@ variable cursorcol  2 cursorcol !
 : pointer  ( f -- ) pointerx @ 3 lshift pointery @ 3 lshift position  
   127 glyph  if  h# 03 sprite  |
   h# 00 sprite  1 cursor ;
-: home  0 cursor  row off  col off  1 cursor ;
+: home  0 cursor  row off  col off  mark off  1 cursor ;
 
 : clrscr  bl glyph  1 auto
   rows @  0  do  
@@ -709,10 +709,17 @@ variable cursorcol  2 cursorcol !
 : endpaste  redraw  1 cursor  modified on ;
 : nextline  ( a1 u1 -- a2 u2 a3 u3 )
   over >r 10 scan  over r@ - r> swap ;
-: paste  0 cursor  yank  col off  begin
+: paste-rest  ( a u -- ) >r
+  point >screen  dup r@ +  columns @ col @ - r@ - 0 max  cmove>
+  line r@ min cmove
+  r> col @ + columns @ 1- min col !  endpaste ;
+: paste  0 cursor  yank  
+  2dup 10 scan nip 0=  if  paste-rest  |
+  begin
     row @ rows @ 1- =  if  -1 row +!  2drop  endpaste  |
     ?dup 0=  if  drop  endpaste  |
-    nextline  row @ >row  swap 64 min dup>r cmove
+    nextline  col off
+    row @ >row  swap 64 min dup>r cmove
     row @ r@ >screen r> 64 diff blank
     1 row +!  dup  if  1 /string  then
   again ;
