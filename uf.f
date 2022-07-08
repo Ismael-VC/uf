@@ -622,6 +622,7 @@ defer terminate     defer page
 : point  ( -- r c ) row @ col @ ;
 : >screen  ( r c -- a ) swap columns @ * + screen @ + ;
 : >row  ( r -- a ) 0 >screen ;
+: offset  ( -- u ) point >screen screen @ - ;
 : at  ( r c -- ) 3 lshift  swap 3 lshift  position ;
 : locate  point at ;
 : line  ( -- a u ) point >screen  columns @ col @ - ;
@@ -820,19 +821,22 @@ create editpos 0 , 0 ,
   mark off  line blank  rows @ 1- drawrow  1 cursor
   ['] (prompt) is prompt  true ;
 
+\ word below mouse position
 : mouse>loc  ( -- r c ) mouse 3 rshift  swap 3 rshift ;
-: scanleft  ( r c -- a ) begin  
-    0  ->  0 >screen  |
+: scanleft  ( r c -- a )  0  ->  >row  |
+  begin  
+    0  ->  1 >screen  |
     2dup >screen c@ 33 <  if  1+ >screen  |
     1-
   again ;
-: scanright  ( r c -- a ) begin  
+: scanright  ( r c -- a ) begin
     columns @  ->  columns @ >screen  |
     2dup >screen c@ 33 <  if  >screen  |
     1+
   again ;
-: below  ( -- a u )
-  mouse>loc 2dup scanright >r  scanleft r> over - ;
+: (below)  ( r c -- a u ) 2dup scanright >r  scanleft r> over - ;
+: below-point  ( -- a u ) point (below) ;
+: below  ( -- a u ) mouse>loc (below) ;
 : blockref?  ( a u1 -- u2 1 | a u1 0 )
   over c@ [char] # <>  if  false  |
   1 /string pad place  pad number 0=  if  count  false  |
@@ -885,6 +889,17 @@ create editpos 0 , 0 ,
   locked @  if  save-block  noedit  drop  then
   screen>buf  evalblock ;
 
+\ search
+: addr>point  ( a -- ) screen @ - columns @ u/mod row ! col ! ;
+: findrange  ( -- u ) locked @  if  /block  else  /screen  then ;
+: find-from  ( a1 u -- a2 f )
+  point >screen 1+ findrange offset -  2swap search nip ;
+: find-to  ( a1 u -- a2 ) 
+  screen @  findrange  2swap search 2drop ;
+: findword  below-point ?dup 0= ?exit 
+  0 cursor  2dup find-from  if  nip nip  else  drop  find-to  then
+  addr>point  redraw/mark  1 cursor ;
+
 : error  ['] (prompt) is prompt  modified off
   ['] failing svector
   locked @  if  noedit drop  then
@@ -916,6 +931,7 @@ create editpos 0 , 0 ,
   [char] a  ->  start  0  |  
   [char] c  ->  terminate 0  |
   [char] e  ->  end  0 | 
+  [char] f  ->  findword  0  |
   [char] k  ->  rkill  0  |  
   [char] u  ->  lkill  0  |  
   [char] v  ->  paste  0  |
