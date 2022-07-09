@@ -225,6 +225,10 @@ variable >num
 : aligned  ( n1 -- n2 ) dup 1 and  if  1+  then ;
 : align  here aligned h ! ;
 : diff  swap - ;
+: 2variable  ( | <word> -- ) create 0 , 0 , ;
+: 2constant  ( x y | <word> -- ) 
+  head ['] (2constant) compile, swap , , ;
+
 variable /search
 : search  ( a1 u1 a2 u2 -- a3 u3 f )
   /search !  swap dup>r /search @ - 1+  0  do
@@ -832,9 +836,9 @@ create editpos 0 , 0 ,
 : mouse>loc  ( -- r c ) mouse 3 rshift  swap 3 rshift ;
 : scanleft  ( r c -- a )  0  ->  >row  |
   begin  
-    0  ->  1 >screen  |
-    2dup >screen c@ 33 <  if  1+ >screen  |
     1-
+    2dup >screen c@ 33 <  if  1+ >screen  |
+    0  ->  >row  |
   again ;
 : scanright  ( r c -- a ) begin
     columns @  ->  columns @ >screen  |
@@ -906,6 +910,15 @@ create editpos 0 , 0 ,
 : findword  below-point ?dup 0= ?exit 
   0 cursor  2dup find-from  if  nip nip  else  drop  find-to  then
   addr>point  redraw/mark  1 cursor ;
+variable seen   2variable wstr
+: getblock  ( u -- f ) loadbuf @ swap fileblock ;
+: (where)  ( u -- ) >r  loadbuf @ /block  begin
+    wstr 2@  search 0=  if
+      2drop r>drop  |
+    seen @ r@ <>  if  [char] # emit  r@ dup . cr seen !  then
+    over loadbuf @ - columns @ u/ 0 >loadbuf columns @ type
+    1 /string
+  again ;
 
 : error  ['] (prompt) is prompt  modified off
   ['] failing svector
@@ -942,6 +955,7 @@ create editpos 0 , 0 ,
   [char] k  ->  rkill  0  |  
   [char] u  ->  lkill  0  |  
   [char] v  ->  paste  0  |
+  [char] d  ->  delete  0  |
   [char] i  ->  1 14 deo  0  |
   13  ->  toggle-mark  0  |
   locked @  if  (ctrl-key/locked)  |
@@ -992,6 +1006,10 @@ only definitions also editor
   enteredit ;
 : list  ( u -- ) load1 loadbuf @  rows @  1  do
     dup columns @ -trailing cr type  columns @ +  loop  drop ;
+: where  ( u1 u2 | <word> -- ) seen off
+  bl word count wstr 2! 1+ swap  ?do
+    i getblock  if  i (where)  then
+  loop ;
 
 defer banner
 : _banner  cr  ."   UF/" version .

@@ -40,6 +40,7 @@ UF - Version 3
 2/          ( u1 -- u2 )            Shift right by 1 bit (unsigned)
 2@          ( a -- x y )            Fetch y, x at a, a + 1
 2>r         ( x y -- )              Swap 2 values and push on return stack
+2constant   ( x y | <word> -- )     Define 2 cell constant
 2drop       ( x y -- )              Drop 2 values
 2dup        ( x y -- x y x y )      Dup 2 values
 2nip        ( x y z q -- z q )      Nip 2 values
@@ -48,6 +49,7 @@ UF - Version 3
 2r>         ( -- x y )              Pop 2 values from return stack and swap
 2rot        ( x y z q v w -- z q v w x y ) Rotate 2 values
 2swap       ( x y z q -- z q x y )  Swap 2 values
+2variable   ( | <word> -- )         Define 2-cell variable
 :           ( | <word> ... -- )     Start colon definition, add compiler vocabulary and start compiling
 :noname     ( | ... -- xt )         Compile headerless word and push execution token
 ;           ( -- )                  Terminate colon definition and remove topmost vocabulary from vocabulary stack [C]
@@ -250,16 +252,16 @@ rnd         ( -- n )                Returns a random number [X]
 rot         ( x y z -- y z x )      Rotate values on stack
 rshift      ( u1 u2 -- u3 )         Shift u1 right by u2 bits
 s"          ( | ..." -- a u )       Push string literal [C]
-see         ( | <word> -- )         Decompile word [X]
-seed        ( -- a )                Current random number seed [X]
 sample      ( a u -- )              Set addr and length field of audio device [GX]
 save        ( | <name> -- )         Save memory from h# 100 to dictionary top in file
 saved       ( a1 u1 a2 u2 -- )      Save u1 bytes at a1 in file with name given by a2, u2
 scan        ( a1 u1 c -- a2 u2 )    Skip characters until c is found
 screensize! ( w h -- )              Set size fields of screen device [GX]
 screensize@ ( -- w h )              Read size fields of screen device [GX]
-search      ( a1 u1 a2 u2 -- a3 u3 f ) Searches a1/u1 for a2/u2 and pushes the address and remaining length where it was found
+search      ( a1 u1 a2 u2 -- a3 u3 f ) Searches a1/u1 for a2/u2 and pushes a flag, the address and remaining length where it was found
 second      ( -- u )                Push current second [X]
+see         ( | <word> -- )         Decompile word [X]
+seed        ( -- a )                Current random number seed [X]
 sign        ( n -- )                Emit sign of n during numeric conversion
 sliteral    ( a u -- )              Compile string literal
 snarf       ( a u -- )              Writes data to ".snarf" file [X]
@@ -295,6 +297,7 @@ vocabulary  ( | <word> -- )         Define new empty vocabulary, invoke to repla
 vocs        ( -- )                  Print vocabulary stack, in order of search
 volume      ( u -- )                Set volume field of audio device [G]
 wait        ( -- )                  Waits for input events (never returns) [X]
+where       ( u1 u2 | <word> -- )   Scan blocks u1 to u2 for <word> and list occurrences
 within      ( n1 n2 n3 -- f )       Pushes flag indicating whether n1 is between n2 and n3 (not inclusive)
 while       ( f -- )                Conditional in `begin ... while ... repeat` loop [C]
 word        ( c | ... <c> -- a )    Skip spaces and parse and return string delimited by c as address of counted string in dictionary

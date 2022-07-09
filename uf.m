@@ -43,8 +43,12 @@ Release History:
 
 Version 3:
     * Added ^l (page) shortcut (suggested by Devine Lu Linvega).
-    * Added ^Ret (mark) shortcut and support for multiline snarf/yank.
-    * Made some small optimizations in the kernel, courtesy of Devine.
+    * Added support for multiline snarf + paste (^ENTER, ^x).
+    * Newlines in snarfed text spanning multiple lines and pasted
+      text is correctly handled now.
+    * New words `2variable`, `2constant` and `where`.
+    * Made some small optimizations in the kernel (courtesy of 
+      Devine Lu Linvega).
 
 Version 2:
     * Small optimizations in kernel, suggested by Devine Lu Linvega.

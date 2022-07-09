@@ -298,7 +298,10 @@
 &long
     LITk JMP2 ,ccomma1 JMP
 
-@h54 01 ": :h52 ( | <word> ... -- )
+@h52a 0b "(2constant) :h52
+    STH2r LDA2k SWP2 INC2 INC2 LDA2 JMP2r
+
+@h54 01 ": :h52a ( | <word> ... -- )
     ;head JSR2 ;smudge JSR2 ;also JSR2 ;compiler JSR2 
     ,compile JMP
 
