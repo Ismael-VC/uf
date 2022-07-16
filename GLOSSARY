@@ -270,6 +270,7 @@ spaces      ( u -- )                Write u spaces
 sprite      ( u -- )                Set sprite field of screen device [X]
 spritedata  ( a -- )                Set addr field of screen device [X]
 state       ( -- a )                Address of variable holding compilation state flag
+stdin       ( -- )                  Invoked when console-input is available [XD]
 svector     ( xt -- )               Set vector of screen device [X]
 swap        ( x y -- y x )          Swap topmost stack values
 th          ( a1 u -- a2 )          Compute address of u th cell at a1

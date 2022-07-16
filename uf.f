@@ -506,6 +506,7 @@ defer cin   defer cout
 ' key defer@ is cin    ' emit defer@ is cout
 : ctype  ( a u -- ) 0  ?do  count cout  loop  drop ;
 defer edit  ( u -- )
+defer stdin
 
 vocabulary editor
 also editor definitions
@@ -868,10 +869,10 @@ create editpos 0 , 0 ,
 : mouseinput  0 pointer  mouse>loc pointerx !
   pointery !  1 pointer  clicked  wait ;
 
-: handlecin  ( c -- )  
+: handlecin  ( c -- )
   0  ->  |  9  ->  tab  |
   10  ->  enter  no-events  r>drop  |  insert ;
-: stdin  18 dei  handlecin  wait ;
+: (stdin)  18 dei  handlecin  wait ;
 : events  ['] input jvector  ['] stdin cvector
   ['] mouseinput mvector ;
 : listen  events
@@ -976,6 +977,7 @@ variable seen   2variable wstr
 ' (other-key) is other-key
 
 only definitions also editor
+' (stdin) is stdin
 : blk  ( -- a ) block ;
 : (page)  screen @ rows @ columns @ * blank  redraw  home ;
 ' (page) is page
