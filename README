@@ -108,11 +108,13 @@ is named by a natural number and contains 2496 bytes (39 lines with
 
 The Escape key will exit or enter editing (unless the current block
 is modified). The bottom row contains counters indicating current
-row, column, block number, the amount of dictionary space left and
-a marker indicating whether the current block is modified. Blocks
-can be loaded using `load` and `thru`. Note that block-loading is
-done by temporarily changing the word for reading user-input (`query`)
-and takes effect when the current input line has been fully processed.
+row, column, block number, the length of the most recently copied
+text, the amount of dictionary space left and a marker indicating
+whether the current block is modified. Blocks can be loaded using
+`load` and `thru`. Note that block-loading is done by temporarily
+changing the word for reading user-input (`query`) and takes effect
+when the current input line has been fully processed. That implies
+that loading words can not be invoked recursively.
 
 You can also edit a block by clicking with button 3 on a string of
 the form "#nnnn" where "nnnn" is a decimal integer.
@@ -151,6 +153,9 @@ The dialect implemented in UF is mostly compatible to the Forth
 
 - Words that produce boolean results may not always generate -1
   (`true`) but some other non-zero value.
+
+- Multiple `while` forms in a `begin` ... `repeat` loop are not
+  supported.
 
 The dictionary can be inspected with the `words`, `order` and `.vocs` 
 words. To decompile built-in or user words, use `see`.
