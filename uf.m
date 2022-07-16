@@ -49,6 +49,7 @@ Version 3:
     * New words `2variable`, `2constant` and `where`.
     * Made some small optimizations in the kernel (courtesy of 
       Devine Lu Linvega).
+    * Exposed `stdin` to override console input events.
 
 Version 2:
     * Small optimizations in kernel, suggested by Devine Lu Linvega.
