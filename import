@@ -1,4 +1,8 @@
 #!/bin/sh
+if [ -z "$1" ] || [ -n "$3" ]; then
+    echo "usage: import BLOCK [TITLE]" >&2
+    exit 1
+fi
 awk -vb=$1 -vtitle=$2 '
 function padl(str) {
     for(i = 64 - length(str); i > 0; --i) str = str " "
