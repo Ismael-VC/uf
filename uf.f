@@ -932,7 +932,8 @@ variable seen   2variable wstr
       loadblock  enteredit  restorepos  then  |
   noedit  if  abort  then ;
 
-: editstatus  rows @ 1- 0 >screen dup>r columns @ blank
+: drawstatus  reverse  rows @ 1- drawrow  normal ;
+: editstatus  rows @ 1- >row dup>r columns @ blank
   row @ 1+ (u.) r@ swap cmove
   col @ 1+ (u.) r@ 3 + swap cmove
   <# block @ #s  [char] # hold #>  r@ 6 + swap cmove
@@ -940,7 +941,23 @@ variable seen   2variable wstr
     r@ 14 + swap cmove  then
   unused (u.) r@ 28 + swap cmove
   modified @  if  127  else  bl  then  r> columns @ 1- + c!
-  reverse  rows @ 1- drawrow  normal ;
+  drawstatus ;
+
+variable bdigits    variable >bdigits
+: indicate-grab  127 >bdigits @ c!  drawstatus ;
+: add-digit  ( c -- )
+  bdigits @ 10 * over [char] 0 - + bdigits !
+  >bdigits @ c!  1 >bdigits +!  indicate-grab ;
+: grab-decode  ( c -- )
+  dup [char] 0  [char] 9 1+ within  if  add-digit  |
+  27  ->  status  1 cursor  events  ['] waiting svector  |
+  13  ->  events  bdigits @ edit  ['] waiting svector  |  
+  drop ;
+: grabbing  jkey grab-decode  brk ;
+: grab  locked @ 0= ?exit 
+  bdigits off  rows @ 1- 7 >screen >bdigits !
+  indicate-grab  no-events  ['] grabbing jvector 
+  0 pointer  0 cursor  0 svector  clear  reset  brk ;
 
 : (ctrl-key/locked)  ( key -- key|0 )
   [char] s  ->  save-block  0  |
@@ -953,8 +970,10 @@ variable seen   2variable wstr
   [char] k  ->  rkill  0  |  
   [char] u  ->  lkill  0  |  
   [char] v  ->  paste  0  |
+  [char] y  ->  paste  0  |
   [char] d  ->  delete  0  |
   [char] i  ->  1 14 deo  0  |
+  [char] g  ->  grab  0  |
   13  ->  toggle-mark  0  |
   locked @  if  (ctrl-key/locked)  |
   [char] l  ->  page  0  | ;
@@ -962,11 +981,11 @@ variable seen   2variable wstr
 : (handle-button)  ( key but -- key|0 )
   h# 1  ->  ctrl-key  |  
   8  ->  home  drop 0  |
-  h# 10  ->  up  drop 0  |  
   h# 14  ->  recall/previous  drop 0  |  
   h# 24  ->  next-block  drop 0  |  
   h# 44  ->  toggle-block  drop 0  |
   h# 84  ->  toggle-block  drop 0  |
+  h# 10  ->  up  drop 0  |  
   h# 20  ->  down  drop 0  |  
   h# 40  ->  left  drop 0  |  
   h# 80  ->  right  drop 0  |  drop ;

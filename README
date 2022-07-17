@@ -81,11 +81,13 @@ meaning ("^" meaning the Control key, "Sh" the Shift key):
             ".snarf" file)
     ^u      Kill to beginning of line or marked region (and snarf)
     ^x      Copy line or marked region to ".snarf" file
-    ^v      Paste contents of ".snarf" file
+    ^v, ^y  Paste contents of ".snarf" file
     ^f      Find next occurrence f word below cursor
     ^s      Save changes in currently edited block
     ^i      Print stacks on console
     ^l      Clear screen (unless in editor)
+    ^g      Grabs all input and reads digits, on ENTER jumps to 
+            indicated block or aborts on ESC
     ^ENTER  Toggle region mark on/off in editor
 
     Sh-Up   Recall the last entered line or jump to previous block
@@ -110,7 +112,7 @@ is named by a natural number and contains 2496 bytes (39 lines with
 
     <blocknumber> edit
 
-The Escape key will exit or enter editing (unless the current block
+The ESC key will exit or enter editing (unless the current block
 is modified). The bottom row contains counters indicating current
 row, column, block number, the length of the most recently copied
 text, the amount of dictionary space left and a marker indicating

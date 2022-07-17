@@ -54,6 +54,9 @@ Version 3:
       block.
     * Sh-Up recalls last entered line in interactive mode.
     * Shift + Arrow-keys replace block-navigation keys ^h, ^n and ^p.
+    * Added ^y as an alias for ^v.
+    * ^g, followed by a number of digits allows 
+      direct jump to indicated block.
 
 Version 2:
     * Small optimizations in kernel, suggested by Devine Lu Linvega.
