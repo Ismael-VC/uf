@@ -70,15 +70,13 @@ to the graphical input prompt and can be used to perform initialization,
 etc.
 
 In the graphical interface the following key sequences have a special
-meaning ("^" meaning the Control key):
+meaning ("^" meaning the Control key, "Sh" the Shift key):
 
     ^a      Jump to beginning of line
     ^e      Jump to end of line
     ^c      Terminate Forth (unless a modified block is open in the 
             editor)
     ^d      Delete next char
-    ^n      Jump to next block
-    ^p      Jump to previous block
     ^k      Kill to end of line or marked region (and write to 
             ".snarf" file)
     ^u      Kill to beginning of line or marked region (and snarf)
@@ -88,8 +86,12 @@ meaning ("^" meaning the Control key):
     ^s      Save changes in currently edited block
     ^i      Print stacks on console
     ^l      Clear screen (unless in editor)
-    ^h      Switch between source and documentation blocks (#1000+)
     ^ENTER  Toggle region mark on/off in editor
+
+    Sh-Up   Recall the last entered line or jump to previous block
+    Sh-Down Jump to next block
+    Sh-Left/Right   Jump between code and documentation ("shadow")
+            block
 
 The arrow keys have the usual meaning. Pressing ENTER will execute
 the current line (marked by the cursor). Pressing ^ENTER will
@@ -99,6 +101,8 @@ in the current directory once you press ENTER or ^x.
 
 Pressing the first mouse button will reposition the cursor. Pressing
 the third button will execute the word below the mouse pointer.
+Moving the scroll wheel will jump to the previous or next block,
+when currently editing an unmodified block.
 
 File system access is provided by "block" files, where each block
 is named by a natural number and contains 2496 bytes (39 lines with

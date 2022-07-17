@@ -277,7 +277,7 @@ save uf0.rom
 : jkey  ( -- k ) 131 dei ;
 : jvector  ( xt -- ) 128 deo2 ;
 : mouse  146 dei2  148 dei2 ;
-: mscroll  154 dei2  156 dei2 ;
+: mscroll  ( -- x y ) 154 dei2  156 dei2 ;
 : mstate  150 dei ;
 : mvector  ( xt -- ) 144 deo2 ;
 : failing  ." machine error" cr  abort ;
@@ -621,6 +621,7 @@ defer noedit  ( -- f )
 defer terminate     defer page
 512 constant width      320 constant height
 4 constant tabwidth     1000 constant #shadow
+64 buffer: rtib       variable /rtib
 
 : /screen  ( -- u ) screen @ negate ;
 : /block  ( -- u ) /screen columns @ - ;
@@ -631,8 +632,8 @@ defer terminate     defer page
 : at  ( r c -- ) 3 lshift  swap 3 lshift  position ;
 : locate  point at ;
 : line  ( -- a u ) point >screen  columns @ col @ - ;
-: prepare  ( a u -- ) >r  tib  r@ cmove  tib dup >in !  
-  r> + >limit ! ;
+: prepare  ( a u -- ) >r  dup tib  r@ cmove
+  rtib r@ cmove  tib dup >in !  r@ + >limit !  r> /rtib ! ;
 : screen>buf  screen @ loadbuf @ /block cmove ;
 : buf>screen  loadbuf @ screen @ /block cmove ;
 : range  ( n1 n2 -- n3 n4 ) 2dup min -rot  max ;
@@ -732,8 +733,7 @@ variable cursorcol  2 cursorcol !
 : split  row @ rows @ 3 - >= ?exit  0 cursor
   scrolldown  line >r  row @ 1+ >row r> cmove
   line blank  col off  1 row +!  modified on  redraw ;
-: enter
-  locked @  if  split  1 cursor  |  0 cursor  
+: enter  locked @  if  split  1 cursor  |  0 cursor  
   row @ >row columns @ -trailing prepare  newline ;
 : advance  col @ 1+ dup columns @ =  if  drop  newline  |  
   col !  1 cursor ;
@@ -777,6 +777,9 @@ variable cursorcol  2 cursorcol !
   line  row @ >row  swap  cmove
   dup>r + columns @ r> - blank  col off
   row @ drawrow  1 cursor  modified on ;
+: recall  locked @ ?exit
+  0 cursor  rtib row @ >row /rtib @ cmove  /rtib @ col !
+  redraw ;
 
 variable dirty
 : gemit  ( c -- )  dirty on
@@ -788,15 +791,9 @@ defer status
 
 defer ctrl-key  ( key -- key|0 )
 defer other-key  ( key -- )
-: handlebutton  ( key but -- key|0 )
-  h# 1  ->  ctrl-key  |  
-  8  ->  home  drop 0  |
-  h# 10  ->  up  drop 0  |  
-  h# 20  ->  down  drop 0  |  
-  h# 40  ->  left  drop 0  |  
-  h# 80  ->  right  drop 0  |  drop ;
+defer handle-button  ( key but -- key|0 )
 : input  0 pointer
-  jkey  jbutton handlebutton  other-key  update  wait ;
+  jkey  jbutton handle-button  other-key  update  wait ;
 : no-events  0 jvector  0 mvector  0 cvector  ['] failing svector ;
 
 variable loading    variable block
@@ -866,8 +863,11 @@ create editpos 0 , 0 ,
       locked @  if  dirty off  screen>buf  then
       prepare  no-events  r>drop  then 
     else  drop  then  |  drop ;
-: mouseinput  0 pointer  mouse>loc pointerx !
-  pointery !  1 pointer  clicked  wait ;
+: shiftblock  ( n -- ) locked @ 0=  if  drop  |  modified @ ?exit 
+  block @ + 1 max edit ;
+: mouseinput  0 pointer  mouse>loc pointerx !  pointery !
+  mscroll nip ?dup  if  shiftblock  then
+  1 pointer  clicked  wait ;
 
 : handlecin  ( c -- )
   0  ->  |  9  ->  tab  |
@@ -944,10 +944,7 @@ variable seen   2variable wstr
 
 : (ctrl-key/locked)  ( key -- key|0 )
   [char] s  ->  save-block  0  |
-  [char] x  ->  copy-marked  0  |
-  [char] n  ->  next-block  0  |
-  [char] h  ->  toggle-block  0  |
-  [char] p  ->  previous-block  0  | ;
+  [char] x  ->  copy-marked  0  | ;
 : (ctrl-key)  ( key -- key|0 )
   [char] a  ->  start  0  |  
   [char] c  ->  terminate 0  |
@@ -961,6 +958,18 @@ variable seen   2variable wstr
   13  ->  toggle-mark  0  |
   locked @  if  (ctrl-key/locked)  |
   [char] l  ->  page  0  | ;
+: recall/previous  locked @  if  previous-block  else  recall then ;
+: (handle-button)  ( key but -- key|0 )
+  h# 1  ->  ctrl-key  |  
+  8  ->  home  drop 0  |
+  h# 10  ->  up  drop 0  |  
+  h# 14  ->  recall/previous  drop 0  |  
+  h# 24  ->  next-block  drop 0  |  
+  h# 44  ->  toggle-block  drop 0  |
+  h# 84  ->  toggle-block  drop 0  |
+  h# 20  ->  down  drop 0  |  
+  h# 40  ->  left  drop 0  |  
+  h# 80  ->  right  drop 0  |  drop ;
 
 : (other-key)  ( key -- )
   0  ->  | 
@@ -975,6 +984,7 @@ variable seen   2variable wstr
 ' exitforth is terminate
 ' (ctrl-key) is ctrl-key
 ' (other-key) is other-key
+' (handle-button) is handle-button
 
 only definitions also editor
 ' (stdin) is stdin

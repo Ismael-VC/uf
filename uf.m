@@ -45,11 +45,15 @@ Version 3:
     * Added ^l (page) shortcut (suggested by Devine Lu Linvega).
     * Added support for multiline snarf + paste (^ENTER, ^x).
     * Newlines in snarfed text spanning multiple lines and pasted
-      text is correctly handled now.
+      text are correctly handled now.
     * New words `2variable`, `2constant` and `where`.
     * Made some small optimizations in the kernel (courtesy of 
       Devine Lu Linvega).
     * Exposed `stdin` to override console input events.
+    * Using the scroll-wheel in the editor jumps to previous or next 
+      block.
+    * Sh-Up recalls last entered line in interactive mode.
+    * Shift + Arrow-keys replace block-navigation keys ^h, ^n and ^p.
 
 Version 2:
     * Small optimizations in kernel, suggested by Devine Lu Linvega.
