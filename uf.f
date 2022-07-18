@@ -888,6 +888,7 @@ create editpos 0 , 0 ,
 : readblock   loading @ dup rows @ 1- =  if  drop  endread  |
   0 >loadbuf columns @ -trailing >r tib r@ cmove
   tib >in !  tib r> + >limit !  1 loading +! ;
+: deleteblock  ( u -- ) (u.) filename filedelete ;
 : evalblock
   ['] readblock is query  loading off
   ['] noop is prompt  >limit @ >in !  interpret ;
@@ -943,19 +944,30 @@ variable seen   2variable wstr
   drawstatus ;
 
 variable bdigits    variable >bdigits
-: indicate-grab  127 >bdigits @ c!  drawstatus ;
+defer grabber  ( f -- )
+: grab-goto  ( f -- )
+  if  bdigits @ edit  else  status  then ;
+: grab-copy  ( f -- )
+  if  bdigits @ block !  modified on  then  status ;
+: grab-move  ( f -- )
+  if  block @ deleteblock  bdigits @ block !  modified on
+    then  status ;
+: grab-cursor  127 >bdigits @ c!  drawstatus ;
+: ungrab  ( f -- ) grabber
+  1 cursor  events  ['] waiting svector ;
 : add-digit  ( c -- )
   bdigits @ 10 * over [char] 0 - + bdigits !
-  >bdigits @ c!  1 >bdigits +!  indicate-grab ;
+  >bdigits @ c!  1 >bdigits +!  grab-cursor ;
 : grab-decode  ( c -- )
   dup [char] 0  [char] 9 1+ within  if  add-digit  |
-  27  ->  status  1 cursor  events  ['] waiting svector  |
-  13  ->  events  bdigits @ edit  ['] waiting svector  |  
+  27  ->  false ungrab  |
+  13  ->  true ungrab  |  
   drop ;
 : grabbing  jkey grab-decode  brk ;
-: grab  locked @ 0= ?exit 
+: grab  ( xt a u -- ) locked @ 0= ?exit 
+  rows @ 1- >row swap cmove  is grabber
   bdigits off  rows @ 1- 7 >screen >bdigits !
-  indicate-grab  no-events  ['] grabbing jvector 
+  grab-cursor  no-events  ['] grabbing jvector 
   0 pointer  0 cursor  0 svector  clear  reset  brk ;
 
 : (ctrl-key/locked)  ( key -- key|0 )
@@ -972,7 +984,9 @@ variable bdigits    variable >bdigits
   [char] y  ->  paste  0  |
   [char] d  ->  delete  0  |
   [char] i  ->  1 14 deo  0  |
-  [char] g  ->  grab  0  |
+  [char] r  ->  ['] grab-copy  s" copy:"  grab  0  |
+  [char] m  ->  ['] grab-move  s" move:"  grab  0  |
+  [char] g  ->  ['] grab-goto  s" goto:"  grab  0  |
   13  ->  toggle-mark  0  |
   locked @  if  (ctrl-key/locked)  |
   [char] l  ->  page  0  | ;
@@ -1032,8 +1046,6 @@ only definitions also editor
   loop ;
 : \s  >limit @ >in !
   loading @  if  rows @ 1- loading !  then ;
-: copy  ( u1 u2 -- ) swap loadblock  block !  modified on  
-  enteredit ;
 : list  ( u -- ) load1 loadbuf @  rows @  1  do
     dup columns @ -trailing cr type  columns @ +  loop  drop ;
 : where  ( u1 u2 | <word> -- ) seen off

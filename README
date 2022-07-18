@@ -86,8 +86,11 @@ meaning ("^" meaning the Control key, "Sh" the Shift key):
     ^s      Save changes in currently edited block
     ^i      Print stacks on console
     ^l      Clear screen (unless in editor)
-    ^g      Grabs all input and reads digits, on ENTER jumps to 
-            indicated block or aborts on ESC
+    ^g      Read digits and jump to indicated block on ENTER
+            (abort on ESC)
+    ^r      Read digits and copy current block to new one on ENTER
+    ^m      Read digits and move current block to new one on ENTER
+            (and delete the old block)
     ^ENTER  Toggle region mark on/off in editor
 
     Sh-Up   Recall the last entered line or jump to previous block
@@ -293,6 +296,8 @@ File:
 
 Datetime:
     year  month  day  hour  minute  second  dotw  doty  isdst
+
+Note that the file words only use the first file device (a0).
 
 
 IX. License

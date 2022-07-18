@@ -131,7 +131,6 @@ compare     ( a1 u1 a2 u2 -- n )    Compares memory lexicographically
 compile,    ( xt -- )               Compile execution token as subroutine call
 compiler    ( -- )                  replace the current vocabulary with the `compiler` vocabulary
 constant    ( x | <word> -- )       Define constant
-copy        ( u1 u2 -- )            Copies block u1 to u2 and start editing [G]
 count       ( a1 -- a2 u )          Push counted string at a1 as start address and length
 cout        ( c -- )                Write character to console device [GD]
 cr          ( -- )                  Write newline character

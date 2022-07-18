@@ -57,6 +57,9 @@ Version 3:
     * Added ^y as an alias for ^v.
     * ^g, followed by a number of digits allows 
       direct jump to indicated block.
+    * Removed `copy`, use ^r to copy block interactively.
+    * Added ^m to move block.
+    * Fixed missing argument in `filedelete`.
 
 Version 2:
     * Small optimizations in kernel, suggested by Devine Lu Linvega.
