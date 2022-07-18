@@ -174,7 +174,7 @@ export      ( u1 u2 -- )            Dump contents of blocks u1 to u2 (inclusive)
 false       ( -- 0 )                Push false constant
 field:      ( | <word> -- )         Define cell sized structure field, word adds field offset [X]
 fileappend  ( a u -- u2 )              Append data to file specified in file device and return success field
-filedelete  ( f -- )                Set delete field of file device
+filedelete  ( -- )                  Delete file
 filename    ( a u -- )              Set name field of file device (uses the `pad`)
 fileread    ( a u -- u2 )           Read from file specified in file device and return success field
 filewrite   ( a u -- u2 )           Write to file specified in file device and return success field

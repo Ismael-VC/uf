@@ -163,10 +163,9 @@ only definitions
 : filewrite  ( a u -- u2 ) 0 167 deo  170 deo2  174 deo2 162 dei2 ;
 : fileappend  ( a u -- u2 ) 1 167 deo  170 deo2  174 deo2 162 dei2 ;
 : fileread  ( a u -- u2 ) 170 deo2  172 deo2  162 dei2 ;
-: filedelete  166 deo ;
+: filedelete  1 166 deo ;
 : saved  ( a1 u1 a3 u2 -- )  
-  filename  filewrite
-  0= abort" saving file failed" ;
+  filename  filewrite 0= abort" saving file failed" ;
 : save  256 here 256 -  bl word count saved ;
 : crash  ." uninitialized execution vector" cr  abort ;
 : defer  head ['] crash literal  44 c, ;
