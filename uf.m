@@ -37,9 +37,15 @@ into the public domain. Do with it whatever you like.
 
 <archive:/uf/uf.rom> Download precompiled ROM
 
-<archive:/uf/uf-2.tgz> Get the source code
+<archive:/uf/uf-4.tgz> Get the source code
 
 Release History:
+
+Version 4:
+    * Fixed serious bug in logic for input-grab (used by ^r, ^g and
+      ^m) which caused return stack underflows.
+    * ^d joins next line if followed by whitespace.
+    * Unrecognized control-code combinations are ignored now.
 
 Version 3:
     * Added ^l (page) shortcut (suggested by Devine Lu Linvega).
