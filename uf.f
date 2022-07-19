@@ -325,9 +325,10 @@ variable /snarfed
   current @ cell+ @ ?dup if  [char] ( emit  count type  ." ) "  then ;
 : .vocs  >voc @  begin  ?dup  while  cell+ @+ count type space  @  
   repeat ;
+: significant  ( u1 -- u2 ) h# 3f and ;
 : words  4 0  do  vocs i th @ @
     begin  ?dup  while
-      count h# 3f and 2dup type space  + @  repeat
+      count significant 2dup type space  + @  repeat
   loop ;
 : marker-save
   >voc @ ,  current @ ,
@@ -406,7 +407,7 @@ only forth
 \ decompiler
 vocabulary decompiler
 also decompiler definitions
-: skipname  ( a1 -- a2 ) count h# 3f and + ;
+: skipname  ( a1 -- a2 ) count significant + ;
 : (rfind)  ( xt dp -- a -1 | xt 0 )
   begin  ?dup 0=  if  false  |
     dup>r skipname 2 + over =  if  drop  r>  true  |
@@ -447,7 +448,7 @@ also decompiler definitions
   over c@ h# 2e =  if
     ."  JSR2" 1 under+ decode-special  else  drop  then ;
 : decode-litk2  ( a1 -- a2 )
-  @+ dup>r rfind  if  [char] ; emit  count h# 3f and type
+  @+ dup>r rfind  if  [char] ; emit  count significant type
     r> decode-jsr  |  [char] # emit  h4.  r>drop ;
 variable lit1
 : decode  ( a1 -- a2 ) count
@@ -630,13 +631,15 @@ defer terminate     defer page
 : offset  ( -- u ) point >screen screen @ - ;
 : at  ( r c -- ) 3 lshift  swap 3 lshift  position ;
 : locate  point at ;
-: line  ( -- a u ) point >screen  columns @ col @ - ;
+: remaining  ( -- u ) columns @ col @ - ;
+: line  ( -- a u ) point >screen  remaining ;
 : prepare  ( a u -- ) >r  dup tib  r@ cmove
   rtib r@ cmove  tib dup >in !  r@ + >limit !  r> /rtib ! ;
 : screen>buf  screen @ loadbuf @ /block cmove ;
 : buf>screen  loadbuf @ screen @ /block cmove ;
 : range  ( n1 n2 -- n3 n4 ) 2dup min -rot  max ;
 : between ( n1 n2 n3 -- f ) range 1+ within ;
+: bottomrow  ( -- u ) rows @ 1- ;
 : marked?  ( row -- f ) mark @ dup  if
     1- row @  between  else  nip  then ;
 
@@ -684,8 +687,8 @@ variable cursorcol  2 cursorcol !
     i 0 at  columns @  0  do  h# 40 sprite  loop  
   loop ;
 : redraw  clrscr  rows @  0  do  i drawrow  loop ;
-: scroll  1 >row  screen @  columns @ rows @ 1- * cmove
-  rows @ 1- >row columns @ blank  redraw ;
+: scroll  1 >row  screen @  columns @ bottomrow * cmove
+  bottomrow >row columns @ blank  redraw ;
 : newline  locked @  if  1 cursor  |
   col off  row @ 1+ dup rows @ =  if  drop  scroll  
   else  row !  then  1 cursor ;
@@ -715,13 +718,13 @@ variable cursorcol  2 cursorcol !
 : nextline  ( a1 u1 -- a2 u2 a3 u3 )
   over >r 10 scan  over r@ - r> swap ;
 : paste-rest  ( a u -- ) >r
-  point >screen  dup r@ +  columns @ col @ - r@ - 0 max  cmove>
+  point >screen  dup r@ +  remaining r@ - 0 max  cmove>
   line r@ min cmove
   r> col @ + columns @ 1- min col !  endpaste ;
 : paste  0 cursor  yank  
   2dup 10 scan nip 0=  if  paste-rest  |
   begin
-    row @ rows @ 1- =  if  -1 row +!  2drop  endpaste  |
+    row @ bottomrow =  if  -1 row +!  2drop  endpaste  |
     ?dup 0=  if  drop  endpaste  |
     nextline  col off
     row @ >row  swap 64 min dup>r cmove
@@ -742,7 +745,7 @@ variable cursorcol  2 cursorcol !
 : left  col @  if  0 cursor  -1 col +!  1 cursor  then ;
 : right  col @ columns @ 1- = ?exit  0 cursor  advance ;
 : up  0 cursor  row @ 1- 0 max row !  redraw/mark  1 cursor ;
-: down  0 cursor  row @ 1+ rows @ 1- 
+: down  0 cursor  row @ 1+ bottomrow 
   locked @  if  1-  then  min row !  redraw/mark  1 cursor ;
 : blankend  bl row @ columns @ 1- >screen c! 
   row @ drawrow  1 cursor  modified on ;
@@ -752,21 +755,21 @@ variable cursorcol  2 cursorcol !
   modified on  redraw  1 cursor ;
 : rubout  col @ 0=  if  locked @  if  backup  then  |
   0 cursor  -1 col +!  line 1- >r dup 1+ swap r> cmove  blankend ;
-: delete  col @ columns @ 1- = ?exit 
-  0 cursor  line 1- >r dup 1+ swap r> cmove  blankend ;
+: join  row @ bottomrow 1- =  if  blankend  |
+  row @ 1+ >row  remaining  line drop swap  cmove
+  row @ 1+ scrollup  redraw  1 cursor  modified on ;
+: delete  0 cursor  line -trailing 0=  if  drop  join  |
+  remaining 1- >r dup 1+ swap r> cmove  blankend ;
 : top  0 cursor  row off  1 cursor ;
 : start  0 cursor  col off  1 cursor ;
 : end  0 cursor  row @ >row columns @ -trailing nip
   columns @ 1- min col !  1 cursor ;
 : tab  0 cursor  col @ dup>r tabwidth u/ 1+ tabwidth *
   columns @ 1- min col !
-  row @ r@ >screen  col @ r> - 2dup over +  
-    columns @ col @ - cmove>
-  bl fill  
-  row @ drawrow  1 cursor ;
+  row @ r@ >screen  col @ r> - 2dup over +  remaining cmove>
+  bl fill  row @ drawrow  1 cursor ;
 : rkill  0 cursor  mark @  if  cut-marked  |
-  line -trailing
-  dup col @ or 0=  if
+  line -trailing dup col @ or 0=  if
     2drop  row @ scrollup  redraw  else
     2dup snarf blank  row @ drawrow  then
   1 cursor  modified on ;
@@ -816,7 +819,7 @@ variable endload
   /block <> abort" error while writing block"
   modified off  update ;
 : writeblock
-  rows @ 1-  0  do  i 0 >loadbuf columns @ -trailing ctype  10 cout  
+  bottomrow  0  do  i 0 >loadbuf columns @ -trailing ctype  10 cout  
   loop ;
 
 create editpos 0 , 0 ,
@@ -825,8 +828,8 @@ create editpos 0 , 0 ,
 : enteredit  redraw  0 cursor  dirty off  mark off
   locked on  ['] noop is prompt  restorepos  1 cursor  update ;
 : exitedit  ( -- f ) modified @  if  false  |
-  savepos  0 cursor  locked off  rows @ 1- row !  col off
-  mark off  line blank  rows @ 1- drawrow  1 cursor
+  savepos  0 cursor  locked off  bottomrow row !  col off
+  mark off  line blank  bottomrow drawrow  1 cursor
   ['] (prompt) is prompt  true ;
 
 \ word below mouse position
@@ -885,7 +888,7 @@ create editpos 0 , 0 ,
 : endread  endload @ block @ u>  if  loading off  block @ 1+ load1  |  
   ['] listen is query  tib dup >in ! >limit !
   locked @ 0=  if  ['] (prompt) is prompt  then ;
-: readblock   loading @ dup rows @ 1- =  if  drop  endread  |
+: readblock   loading @ dup bottomrow =  if  drop  endread  |
   0 >loadbuf columns @ -trailing >r tib r@ cmove
   tib >in !  tib r> + >limit !  1 loading +! ;
 : deleteblock  ( u -- ) (u.) filename filedelete ;
@@ -908,7 +911,7 @@ create editpos 0 , 0 ,
   point >screen 1+ findrange offset -  2swap search nip ;
 : find-to  ( a1 u -- a2 ) 
   screen @  findrange  2swap search 2drop ;
-: findword  below-point ?dup 0= ?exit 
+: findword  below-point ?dup 0=  if  drop  |
   0 cursor  2dup find-from  if  nip nip  else  drop  find-to  then
   addr>point  redraw/mark  1 cursor ;
 variable seen   2variable wstr
@@ -932,8 +935,8 @@ variable seen   2variable wstr
       loadblock  enteredit  restorepos  then  |
   noedit  if  abort  then ;
 
-: drawstatus  reverse  rows @ 1- drawrow  normal ;
-: editstatus  rows @ 1- >row dup>r columns @ blank
+: drawstatus  reverse  bottomrow drawrow  normal ;
+: editstatus  bottomrow >row dup>r columns @ blank
   row @ 1+ (u.) r@ swap cmove
   col @ 1+ (u.) r@ 3 + swap cmove
   <# block @ #s  [char] # hold #>  r@ 6 + swap cmove
@@ -943,6 +946,7 @@ variable seen   2variable wstr
   modified @  if  127  else  bl  then  r> columns @ 1- + c!
   drawstatus ;
 
+\ input grab
 variable bdigits    variable >bdigits
 defer grabber  ( f -- )
 : grab-goto  ( f -- )
@@ -1018,6 +1022,7 @@ defer grabber  ( f -- )
 ' (other-key) is other-key
 ' (handle-button) is handle-button
 
+\ external interface and helper words
 only definitions also editor
 ' (stdin) is stdin
 : blk  ( -- a ) block ;
@@ -1045,7 +1050,7 @@ only definitions also editor
     writeblock
   loop ;
 : \s  >limit @ >in !
-  loading @  if  rows @ 1- loading !  then ;
+  loading @  if  bottomrow loading !  then ;
 : list  ( u -- ) load1 loadbuf @  rows @  1  do
     dup columns @ -trailing cr type  columns @ +  loop  drop ;
 : where  ( u1 u2 | <word> -- ) seen off
