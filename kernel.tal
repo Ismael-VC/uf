@@ -30,7 +30,7 @@
     ;count JSR2 OVR2 LDA #2d NEQ ,&loop JCN
     #00 ;&sgn STA #0001 ;slashstring JSR2
 &loop
-    DUP2 #0000 EQU2 ,&done JCN
+    ORAk #00 EQU ,&done JCN
     ,&ctake JSR ,&digit JSR NIP ,&ok JCN
     POP2 POP2 POP2 POP2r ;&addr LDA2 #0000 JMP2r
 &ok
