@@ -191,7 +191,7 @@ variable >voc  ' cdp 4 + >voc !
 : 0<>  if  -1  else  0  then ;
 : bounds  ( a1 n -- a2 a1 ) over + swap ;
 
-3 constant version
+4 constant version
 
 variable >num
 : <#  pad >num ! ;
