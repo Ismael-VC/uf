@@ -963,20 +963,25 @@ defer grabber  ( f -- )
   bdigits @ 10 * over [char] 0 - + bdigits !
   >bdigits @ c!  1 >bdigits +!  grab-cursor ;
 : grab-decode  ( c -- )
-  dup [char] 0  [char] 9 1+ within  if  add-digit  |
-  27  ->  false ungrab  |
-  13  ->  true ungrab  |  
-  drop ;
-: grabbing  jkey grab-decode  brk ;
-: grab  ( xt a u -- ) locked @ 0= ?exit 
-  rows @ 1- >row swap cmove  is grabber
-  bdigits off  rows @ 1- 7 >screen >bdigits !
-  grab-cursor  no-events  ['] grabbing jvector 
-  0 pointer  0 cursor  0 svector  clear  reset  brk ;
+  dup [char] 0  [char] 9 1+ within  if  add-digit  true  |
+  27  ->  false ungrab  false  |
+  13  ->  true ungrab  false  |
+  drop  true ;
+: grabbing  jkey grab-decode  if  brk  then ;
+: limbo  no-events  ['] grabbing jvector  
+  0 pointer  0 cursor  0 svector  brk ;
+: grab  ( xt a u -- ) locked @ 0= ?exit
+  bottomrow >row swap cmove  is grabber
+  bdigits off  bottomrow 7 >screen >bdigits !
+  grab-cursor  limbo ;
 
+\ key handlers
 : (ctrl-key/locked)  ( key -- key|0 )
+  [char] r  ->  ['] grab-copy  s" copy:"  grab  0  |
+  [char] m  ->  ['] grab-move  s" move:"  grab  0  |
+  [char] g  ->  ['] grab-goto  s" goto:"  grab  0  |
   [char] s  ->  save-block  0  |
-  [char] x  ->  copy-marked  0  | ;
+  [char] x  ->  copy-marked  0  |  drop  0 ;
 : (ctrl-key)  ( key -- key|0 )
   [char] a  ->  start  0  |  
   [char] c  ->  terminate 0  |
@@ -988,12 +993,9 @@ defer grabber  ( f -- )
   [char] y  ->  paste  0  |
   [char] d  ->  delete  0  |
   [char] i  ->  1 14 deo  0  |
-  [char] r  ->  ['] grab-copy  s" copy:"  grab  0  |
-  [char] m  ->  ['] grab-move  s" move:"  grab  0  |
-  [char] g  ->  ['] grab-goto  s" goto:"  grab  0  |
   13  ->  toggle-mark  0  |
-  locked @  if  (ctrl-key/locked)  |
-  [char] l  ->  page  0  | ;
+  locked @  if  r>drop  (ctrl-key/locked)  |
+  [char] l  ->  page  0  |  drop  0 ;
 : recall/previous  locked @  if  previous-block  else  recall then ;
 : (handle-button)  ( key but -- key|0 )
   h# 1  ->  ctrl-key  |  
@@ -1006,7 +1008,6 @@ defer grabber  ( f -- )
   h# 20  ->  down  drop 0  |  
   h# 40  ->  left  drop 0  |  
   h# 80  ->  right  drop 0  |  drop ;
-
 : (other-key)  ( key -- )
   0  ->  | 
   9  ->  tab  |
