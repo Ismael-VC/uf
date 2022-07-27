@@ -245,8 +245,16 @@
 @h39 01 "h :h38 ;_var JSR2 @h :here
 @h40 04 "noop :h39 @noop JMP2r
 
-@h41 04 "head :h40 @head ( | <word> -- )
-    #0020 ;word JSR2
+@h40a 06 "?redef :h40 @qredef 
+    DUP2 ;find JSR2 ORA ,&warn JCN
+    POP2 POP2 JMP2r
+&warn
+    POP2 ;&msg #000b ;type JSR2 ;count JSR2 ;type JSR2 
+    #0020 ;emit JMP2
+&msg 20 "redefined 20
+
+@h41 04 "head :h40a @head ( | <word> -- )
+    #0020 ;word JSR2 DUP2 ,qredef JSR
     ;count JSR2
     ;h LDA2 STH2
     #1f AND STHk ;h LDA2 ;place JSR2
