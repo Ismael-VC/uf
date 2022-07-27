@@ -19,6 +19,7 @@ UF - Version 4
 ,           ( x -- )                Store x in dictionary and increase dictionary pointer
 -           ( n1 n2 -- n3 )         Subtract
 ->          ( x -- x| )             Equivalent to `over =  if` [C]
+-;          ( -- )                  Terminate colon definition, if previous operation is a call, convert to jump
 -rot        ( x y z -- z x y )      Rotate down
 -trailing   ( a u1 -- a u2 )        Drop trailing blanks
 .           ( n -- )                Print number

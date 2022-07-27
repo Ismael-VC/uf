@@ -141,6 +141,10 @@ also compiler definitions
 : +loop  patchloop  ['] (loop) compile,  cjump, ; immediate
 : loop  1 literal  patchloop  ['] (loop) compile,  cjump, ; 
   immediate
+: tailjump  here 1- dup c@  46  ->  44 swap c!  |  
+  14  ->  12 swap c!  |  drop  108 c, ;
+: -;  current @ @ here <>  if  tailjump  else  108 c,  then
+  state off  reveal ; immediate
 
 only definitions
 : constant  head ['] (constant) compile, , ;
