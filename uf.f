@@ -886,10 +886,15 @@ create editpos 0 , 0 ,
     buf>screen  redraw  update  dirty off  then
   wait ;
 
-: load1  ( u --)
-  loadbuf @ over fileblock 0= abort" no such block" 
+: load1  ( u -- ) [char] # emit  dup . 
+  loadbuf @ over fileblock 0= abort" no such block"
   block ! ;
-: endread  endload @ block @ u>  if  loading off  block @ 1+ load1  |  
+: ?load  ( u -- f ) loadbuf @ swap fileblock ;
+: nextblock  ( u -- f ) begin
+    endload @ over u>  if
+      1+ dup ?load  if  [char] # emit  dup .  block !  true  |
+    else  drop  false  |  again ;
+: endread  block @ nextblock  if  loading off  |
   ['] listen is query  tib dup >in ! >limit !
   locked @ 0=  if  ['] (prompt) is prompt  then ;
 : readblock   loading @ dup bottomrow =  if  drop  endread  |
@@ -1041,7 +1046,7 @@ only definitions also editor
 : Paste  paste ;
 : Load  save-and-eval-block ;
 : load  ( u -- )  endload off  load1 evalblock  ;
-: thru  ( u1 u2 -- ) endload !  load1 evalblock ;
+: thru  ( u1 u2 -- ) endload !  1- nextblock drop  evalblock ;
 : (edit)  ( u -- ) loadblock  enteredit ;
 ' (edit) is edit
 : Next  next-block ;
