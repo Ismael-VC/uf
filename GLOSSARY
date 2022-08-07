@@ -102,6 +102,7 @@ aligned     ( n1 -- n2 )            Align number
 allot       ( u -- )                Allocate u bytes in dictionary
 also        ( -- )                  Duplicate topmost entry on vocabulary stack
 at-xy       ( x y -- )              Set cursor position to row y column x [G]
+audio       ( u -- )                Select audio-device 0 - 3 [X]
 auto        ( u -- )                Set AUTO field of screen device [G]
 base        ( a -- )                Variable holding numeric base
 begin       ( -- )                  Start loop [C]
@@ -217,7 +218,7 @@ mscroll     ( -- x y )              Push x/y scroll fields of mouse device [GX]
 mstate      ( -- u )                Push state field of mouse device [GX]
 mvector     ( xt -- )               Set vector of mouse device [GX]
 negate      ( n1 -- n2 )            Negate value
-new         ( -- )                  Marker, restore dictionary and vocabularies to defaults [XG]
+new         ( -- )                  Marker, restore dictionary and vocabularies to defaults [GX]
 nip         ( x y -- y )            Remove second value on stack
 noop        ( -- )                  Does nothing
 number      ( a -- a 0 | n 1 )      Convert counted string at a to number
@@ -226,6 +227,7 @@ on          ( a -- )                Store -1 at a
 only        ( -- )                  Clear vocabulary stack and set default vocabulary
 or          ( n1 n2 -- n3 )         Perform binary OR
 order       ( -- )                  Print vocabulary stack and definition vocabulary [X]
+output      ( -- u )                Return loudness of envelope [X]
 over        ( x y -- x y x )        Push second value on stack
 pad         ( -- a )                Push scratchpad area address
 page        ( -- )                  Clear screen [GD]

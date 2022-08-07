@@ -42,7 +42,7 @@ into the public domain. Do with it whatever you like.
 Release History:
 
 Version 5:
-
+    * Added `audio` to select current audio device.
 
 Version 4:
     * Fixed serious bug in logic for input-grab (used by ^r, ^g and
