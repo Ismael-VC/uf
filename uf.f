@@ -252,6 +252,18 @@ save uf0.rom
 ' noop is prompt
 
 : ?  @ . ;
+: based  base !  bl word number r> r> base ! >r ?exit
+  count type  ."  bad number"  cr  abort ;
+: h#  base @ >r 16 based ;
+: d#  base @ >r 10 based ;
+also compiler definitions
+: h#  h# literal ; immediate
+: d#  d# literal ; immediate
+only definitions
+: heaptop  uxn  if  h# ea00  else  h# ec40  then ;
+: unused  heaptop here - ;
+
+variable devaudio  h# 30 devaudio !
 : year  192 dei2 ;
 : month  194 dei ;
 : day  195 dei ;
@@ -270,11 +282,12 @@ save uf0.rom
 : auto  38 deo ;
 : spritedata  44 deo2 ;
 : sprite  47 deo ;
-: sample  60 deo2 ;
-: play  63 deo ;
-: adsr  56 deo2 ;
-: volume  62 deo ;
-: output  52 dei ;
+: audio  ( u -- ) 4 lshift h# 30 + devaudio ! ;
+: sample  ( a -- ) devaudio @ 12 + deo2 ;
+: play  ( u -- ) devaudio @ 15 + deo ;
+: adsr  ( u -- ) devaudio @ 8 + deo2 ;
+: volume  ( u -- ) devaudio @ 14 + deo ;
+: output  ( -- u) devaudio @ 4 + dei ;
 : cvector  ( xt -- ) 16 deo2 ;
 : jbutton  ( -- b ) 130 dei ;
 : jkey  ( -- k ) 131 dei ;
@@ -289,17 +302,6 @@ defer tick  ' noop is tick
 : wait  r>drop  ['] waiting svector  brk ;
 : pausing  ['] failing svector ;
 : pause  ['] pausing svector  brk ;
-
-: based  base !  bl word number r> r> base ! >r ?exit
-  count type  ."  bad number"  cr  abort ;
-: h#  base @ >r 16 based ;
-: d#  base @ >r 10 based ;
-also compiler definitions
-: h#  h# literal ; immediate
-: d#  d# literal ; immediate
-only definitions
-: heaptop  uxn  if  h# ea00  else  h# ec40  then ;
-: unused  heaptop here - ;
 
 variable /snarfed
 : apply-theme  ( a -- ) @+ swap @+ swap @+ nip colors ;
@@ -886,13 +888,13 @@ create editpos 0 , 0 ,
     buf>screen  redraw  update  dirty off  then
   wait ;
 
-: load1  ( u -- ) [char] # emit  dup . 
+: load1  ( u -- ) ."  #" dup . 
   loadbuf @ over fileblock 0= abort" no such block"
   block ! ;
 : ?load  ( u -- f ) loadbuf @ swap fileblock ;
 : nextblock  ( u -- f ) begin
     endload @ over u>  if
-      1+ dup ?load  if  [char] # emit  dup .  block !  true  |
+      1+ dup ?load  if  ."  #" dup .  block !  true  |
     else  drop  false  |  again ;
 : endread  block @ nextblock  if  loading off  |
   ['] listen is query  tib dup >in ! >limit !
