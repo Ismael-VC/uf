@@ -192,6 +192,8 @@ hour        ( -- u )                Push current hour
 i           ( -- u )                Push index of innermost `do` loop
 if          ( f -- )                Start conditional [C]
 immediate   ( -- )                  Make most recent definition immediate
+include     ( | <name> -- )         Include file designated by "<name>"
+included    ( a u -- )              Include file designated by given string
 interpret   ( | ... -- )            Interpret code in `tib`
 invert      ( n1 -- n2 )            Perform binary NOT
 is          ( xt | <word> -- )      Set execution vector of deferred word
