@@ -276,7 +276,8 @@ variable oldquery   variable oldabort
   again ;
 : included  ( a u -- )
   filename  heaptop here - 2/ heaptop over - dup >include !
-  swap fileread >include @ + incend !  ['] query defer@ oldquery !
+  swap fileread  0  ->  true abort" no such file"  |
+  >include @ + incend !  ['] query defer@ oldquery !
   ['] inc-line is query  ['] noop is prompt  ['] abort defer@
   oldabort !  ['] abortinc is abort ;
 : include  ( | <name> -- ) bl word count included ;
