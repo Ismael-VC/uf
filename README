@@ -304,6 +304,13 @@ screen, so the line-length limit of the screen applies here.
 Input lines that exceed the screen width are silently cut off,
 with the text preceding the exceeding part being ignored.
 
+Due to limitations of the "varvara" file-system interface files
+loaded with `include` (or `included`) may not exceed the
+currently available dictionary space divided by two as the
+file has to be loaded into memory completely before it can be
+interpreted. There is currently no way to check whether the
+file exceeded this available space.
+
 
 IX. License
 
