@@ -12,7 +12,7 @@
 ```
 
 
-Version: 5
+Version: 6
 
 
 "UF" is a traditional Forth system for the "uxn/varvara" virtual
@@ -37,12 +37,16 @@ into the public domain. Do with it whatever you like.
 
 <archive:/uf/uf.rom> Download precompiled ROM
 
-<archive:/uf/uf-5.tgz> Get the source code
+<archive:/uf/uf-6.tgz> Get the source code
 
 Release History:
 
+Version 6:
+
 Version 5:
     * Added `audio` to select current audio device.
+    * `page` was not exposed to the default dictionary (thanks to Éric Ortie).
+    * `]` didn't restore the proper vocabulary order.
 
 Version 4:
     * Fixed serious bug in logic for input-grab (used by ^r, ^g and
