@@ -88,7 +88,7 @@ only definitions
 : 2r@  r> 2r> over over 2>r >r ;
 : here  h @ ;
 : forth  dp vocs ! ;
-: ]  compiler  (compile) ;
+: ]  also  compiler  (compile) ;
 : \  >limit @ >in ! ; immediate
 : -rot  -rot ;
 : 2drop  2drop ;
