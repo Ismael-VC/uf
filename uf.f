@@ -513,6 +513,7 @@ defer cin   defer cout
 : ctype  ( a u -- ) 0  ?do  count cout  loop  drop ;
 defer edit  ( u -- )
 defer stdin
+defer page
 
 vocabulary editor
 also editor definitions
@@ -624,7 +625,7 @@ variable locked     variable mark
 variable pointerx   variable pointery
 variable modified
 defer noedit  ( -- f )
-defer terminate     defer page
+defer terminate
 512 constant width      320 constant height
 4 constant tabwidth     1000 constant #shadow
 64 buffer: rtib       variable /rtib
