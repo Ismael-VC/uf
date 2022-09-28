@@ -275,7 +275,7 @@ state       ( -- a )                Address of variable holding compilation stat
 stdin       ( -- )                  Invoked when console-input is available [XD]
 svector     ( xt -- )               Set vector of screen device [X]
 swap        ( x y -- y x )          Swap topmost stack values
-th          ( a1 u -- a2 )          Compute address of u th cell at a1
+th          ( a1 u -- a2 )          Compute address of u-th cell at a1
 then        ( -- )                  End of conditional [C]
 tib         ( -- a )                Text input buffer
 tick        ( -- )                  Called by screen-vector while waiting for input events [XD]
