@@ -50,7 +50,7 @@ This will produce the following files:
     ufx.rom
 
         The functionality of "uf0.rom" together with words to access
-        varvara device ports in a more convenient matter, and some
+        "varvara" device ports in a more convenient matter, and some
         basic tools (like `dump`).
 
     uf.rom
@@ -269,7 +269,7 @@ just blinks the cursor).
 The graphical system sets the screen size to the default 512x320
 resolution which must be supported by the underlying uxn implementation.
 
-A number of words are defined to access varvara devices, consult
+A number of words are defined to access "varvara" devices, consult
 the GLOSSARY for more details:
 
 System:
@@ -298,6 +298,11 @@ Datetime:
     year  month  day  hour  minute  second  dotw  doty  isdst
 
 Note that the file words only use the first file device (a0).
+
+Console input in the graphical interface is redirected to the 
+screen, so the line-length limit of the screen applies here.
+Input lines that exceed the screen width are silently cut off,
+with the text preceding the exceeding part being ignored.
 
 
 IX. License
