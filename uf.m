@@ -42,10 +42,14 @@ into the public domain. Do with it whatever you like.
 Release History:
 
 Version 6:
+    * Added `include` and `included` (suggested by Alex Wennerberg).
+    * Dropped ^i handling (uxnemu already shows stacks on F2).
+    * Use text color for cursor to be visible in monochromatic mode.
 
 Version 5:
     * Added `audio` to select current audio device.
-    * `page` was not exposed to the default dictionary (thanks to Éric Ortie).
+    * `page` was not exposed to the default dictionary (thanks to Éric 
+      Ortie).
     * `]` didn't restore the proper vocabulary order.
 
 Version 4:
