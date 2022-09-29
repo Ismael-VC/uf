@@ -704,15 +704,13 @@ create default-theme  h# 0b75 , h# 0da6 , h# 0db8 ,
 
 30 constant blinks
 variable ccount  1 ccount !
-variable cursorcol  2 cursorcol !
+variable cursorcol  1 cursorcol !
 : drawcursor  ( c -- ) locate  127 glyph  sprite ;
 : cursor  ( f -- )
-  if  blinks ccount !  2 dup cursorcol !  else  0  then
+  if  blinks ccount !  1 dup cursorcol !  else  0  then
   drawcursor ;
-: blink
-  ccount @ 1- ?dup  if  ccount !  |
-  blinks ccount !  
-  cursorcol @  if  0  else 2  then  dup cursorcol ! drawcursor ; 
+: blink  ccount @ 1- ?dup  if  ccount !  |  blinks ccount !
+  cursorcol @  if  0  else  1  then  dup cursorcol ! drawcursor ; 
 ' blink is tick
 
 : pointer  ( f -- ) pointerx @ 3 lshift pointery @ 3 lshift position  
