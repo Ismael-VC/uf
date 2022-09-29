@@ -267,25 +267,31 @@ only definitions
 : heaptop  uxn  if  h# ea00  else  h# ec40  then ;
 : unused  heaptop here - ;
 
+\ include
 variable >include   variable incend  
 variable oldquery   variable oldabort
 : endinclude  oldquery @  ['] query  defer!  ['] (prompt) is prompt
   oldabort @ ['] abort defer!  >limit @ >in ! ;
 : abortinc  endinclude  abort ;
+: eol  ( a1 -- a2 f )
+  count  13  ->  dup 1- bl swap c!  false  |
+  10  ->  true  |  drop  false ;
 : inc-line  >include @ dup incend @ >=  if  drop  endinclude  |
   begin
     dup incend @ >=  if  drop  endinclude  |
-    count  10 =  if  1- >include @ - >r  >include @ tib r@ cmove
+    eol  if  1- >include @ - >r  >include @ tib r@ cmove
       tib >in !  tib r@ + >limit !  r> 1+ >include +!  |
   again ;
 : included  ( a u -- )
   filename  heaptop here - 2/ heaptop over - dup >include !
   swap fileread  0  ->  true abort" no such file"  |
-  >include @ + incend !  ['] query defer@ oldquery !
+  >include @ + dup incend !  heaptop = abort" file too big"
+  ['] query defer@ oldquery !
   ['] inc-line is query  ['] noop is prompt  ['] abort defer@
   oldabort !  ['] abortinc is abort ;
 : include  ( | <name> -- ) bl word count included ;
 
+\ varvara interface
 variable devaudio  h# 30 devaudio !
 : year  192 dei2 ;
 : month  194 dei ;
