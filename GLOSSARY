@@ -192,8 +192,8 @@ hour        ( -- u )                Push current hour
 i           ( -- u )                Push index of innermost `do` loop
 if          ( f -- )                Start conditional [C]
 immediate   ( -- )                  Make most recent definition immediate
-include     ( | <name> -- )         Include file designated by "<name>"
-included    ( a u -- )              Include file designated by given string
+include     ( | <name> -- )         Include file designated by "<name>" [X*]
+included    ( a u -- )              Include file designated by given string [X*]
 interpret   ( | ... -- )            Interpret code in `tib`
 invert      ( n1 -- n2 )            Perform binary NOT
 is          ( xt | <word> -- )      Set execution vector of deferred word
@@ -318,3 +318,4 @@ Notes:
 [G]     Only available in the graphical interface ("uf.rom"), implies [X]
 [X]     Available in "ufx.rom" and "uf.rom"
 [D]     Deferred word
+[*]     Mind note in README

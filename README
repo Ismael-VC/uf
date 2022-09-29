@@ -84,7 +84,6 @@ meaning ("^" meaning the Control key, "Sh" the Shift key):
     ^v, ^y  Paste contents of ".snarf" file
     ^f      Find next occurrence f word below cursor
     ^s      Save changes in currently edited block
-    ^i      Print stacks on console
     ^l      Clear screen (unless in editor)
     ^g      Read digits and jump to indicated block on ENTER
             (abort on ESC)
@@ -130,6 +129,8 @@ the form "#nnnn" where "nnnn" is a decimal integer.
 
 If a 6 byte file named ".theme" is found in the current directory,
 then it will be used to initialize the color scheme during startup.
+The colors are used as follows: #0 background, #1 text, #2 status
+line text, #3 selection.
 
 The current state of the system can be conveniently stored as a
 .rom file on disk by entering
@@ -308,8 +309,7 @@ Due to limitations of the "varvara" file-system interface files
 loaded with `include` (or `included`) may not exceed the
 currently available dictionary space divided by two as the
 file has to be loaded into memory completely before it can be
-interpreted. There is currently no way to check whether the
-file exceeded this available space.
+interpreted. 
 
 
 IX. License
