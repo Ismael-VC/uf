@@ -1035,7 +1035,6 @@ defer grabber  ( f -- )
   [char] v  ->  paste  0  |
   [char] y  ->  paste  0  |
   [char] d  ->  delete  0  |
-  [char] i  ->  1 14 deo  0  |
   13  ->  toggle-mark  0  |
   locked @  if  r>drop  (ctrl-key/locked)  |
   [char] l  ->  page  0  |  drop  0 ;
