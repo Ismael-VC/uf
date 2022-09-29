@@ -161,6 +161,7 @@ only definitions
 : min  2dup <  if  drop  else  nip  then ;
 : max  2dup >  if  drop  else  nip  then ;
 : pad  here 256 + ;
+
 256 buffer: fnbuf
 : filename  ( a u -- ) 255 min fnbuf place  0 fnbuf dup c@ + 1+ c! 
   fnbuf 1+ 168 deo2 ;
@@ -171,11 +172,14 @@ only definitions
 : saved  ( a1 u1 a3 u2 -- )  
   filename  filewrite 0= abort" saving file failed" ;
 : save  256 here 256 -  bl word count saved ;
+: loadrom  ( a u -- ) filename (loadrom) ;
+
 : crash  ." uninitialized execution vector" cr  abort ;
 : defer  head ['] crash literal  44 c, ;
 : defer!  1+ ! ;
 : defer@  1+ @ ;
 : is  ' defer! ;
+
 defer bye  
 : (bye)  1 15 deo  brk ;
 ' (bye) is bye
@@ -194,9 +198,24 @@ variable >voc  ' cdp 4 + >voc !
 : blank  bl fill ;
 : 0<>  if  -1  else  0  then ;
 : bounds  ( a1 n -- a2 a1 ) over + swap ;
+: ?exit  if r>drop  then ;
+: .(  [char] ) parse type ;
+: -trailing  begin  1- dup 0<  if  1+  |
+  2dup + c@  bl <>  until  1+ ;
+: clamp  ( n min max -- n2 ) rot max min ;
+: 2@  dup cell+ @ swap @ ;
+: 2!  swap over ! cell+ ! ;
+: :noname  also compiler  here (compile) ;
+: aligned  ( n1 -- n2 ) dup 1 and  if  1+  then ;
+: align  here aligned h ! ;
+: diff  swap - ;
+: 2variable  ( | <word> -- ) create 0 , 0 , ;
+: 2constant  ( x y | <word> -- ) 
+  head ['] (2constant) compile, swap , , ;
 
 6 constant version
 
+\ numeric formatting
 variable >num
 : <#  pad >num ! ;
 : #  base @ u/mod swap dup 9 u>  if  
@@ -216,22 +235,7 @@ variable >num
 : .s  depth ?dup 0=  if  ." stack empty "  |  
   dup 0  do  dup i - pick .  loop  drop ;
 
-: ?exit  if r>drop  then ;
-: .(  [char] ) parse type ;
-: -trailing  begin  1- dup 0<  if  1+  |
-  2dup + c@  bl <>  until  1+ ;
-: clamp  ( n min max -- n2 ) rot max min ;
-: 2@  dup cell+ @ swap @ ;
-: 2!  swap over ! cell+ ! ;
-: loadrom  ( a u -- ) filename (loadrom) ;
-: :noname  also compiler  here (compile) ;
-: aligned  ( n1 -- n2 ) dup 1 and  if  1+  then ;
-: align  here aligned h ! ;
-: diff  swap - ;
-: 2variable  ( | <word> -- ) create 0 , 0 , ;
-: 2constant  ( x y | <word> -- ) 
-  head ['] (2constant) compile, swap , , ;
-
+\ string search
 variable /search
 : search  ( a1 u1 a2 u2 -- a3 u3 f )
   /search !  swap dup>r /search @ - 1+  0  do
@@ -537,6 +541,7 @@ defer page
 vocabulary editor
 also editor definitions
 
+\ font used for graphical interface
 create font  hex
 00 c, 00 c, 00 c, 00 c, 00 c, 00 c, 00 c, 00 c, 
 18 c, 18 c, 18 c, 18 c, 18 c, 00 c, 18 c, 00 c, 
@@ -670,6 +675,7 @@ defer terminate
     1- row @  between  else  nip  then ;
 
 variable textcolor
+\  theme: color #0 background, #1 text, #2 modeline, #3 highlight
 create default-theme  h# 0b75 , h# 0da6 , h# 0db8 ,
 : reverse  h# 4e textcolor ! ;
 : normal  h# 41 textcolor ! ;
