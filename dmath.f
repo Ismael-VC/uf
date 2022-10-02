@@ -69,7 +69,6 @@ variable scratch
         -rot
     then ;
 
-
 : um/mod ( ud u1 -- u2 u3 )
     -rot  16 0 do  divstep  loop
     rot drop swap ;
@@ -78,7 +77,8 @@ variable scratch
   r> r@ xor 0< if negate then  r> 0< if >r negate r> then ;
 : */mod >r m* r> sm/rem ;
 : */    */mod nip ;
-: t2*  over >r >r d2* r> 2* r> 0< 1 and + ;
+: tf  if  -1  else  0  then ;
+: t2*  over >r >r d2* r> 2* r> 0< tf 1 and + ;
 
 variable divisor
 : m*/mod
@@ -87,14 +87,14 @@ variable divisor
                          ( m0 h l m1 )
     swap >r 0 d+ r>   ( m h l )
     -rot                 ( l m h )
-    32 0 do
+    16 0 do
         t2*
         dup divisor @ >= if
             divisor @ -
             rot 1+ -rot
         then
    loop ;
-: m*/ m*/mod drop ;
+: m*/  ( d1 n1 +n2 -- d2 ) m*/mod drop ;
 
 \ double printing
 : (digit)  ( u -- c ) 9 over < 7 and + [char] 0 + ;
