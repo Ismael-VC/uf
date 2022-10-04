@@ -35,6 +35,7 @@
 : d2/ dup 31 lshift >r 2/ swap 2/ r> or swap ;
 : dmax 2over 2over d< if 2swap then 2drop ;
 : dmin 2over 2over d< 0= if 2swap then 2drop ;
+: tf  if  -1  else  0  then ;
 
 variable scratch
 : um*  ( u1 u2 -- ud )
@@ -51,7 +52,7 @@ variable scratch
     loop
     rot drop ;
 : abssgn    ( a b -- |a| |b| negf )
-    2dup xor 0< >r abs swap abs swap r> ;
+    2dup xor 0< tf >r abs swap abs swap r> ;
 : m*  abssgn >r um* r> if dnegate then ;
 : divstep
     ( divisor dq hi )
@@ -59,7 +60,7 @@ variable scratch
     over 0< if 1+ then
     swap 2* swap
     rot                     ( dq hi divisor )
-    2dup < 0= if
+    2dup >= if
         tuck                ( dq divisor hi divisor )
         -
         swap                ( dq hi divisor )
@@ -77,7 +78,6 @@ variable scratch
   r> r@ xor 0< if negate then  r> 0< if >r negate r> then ;
 : */mod >r m* r> sm/rem ;
 : */    */mod nip ;
-: tf  if  -1  else  0  then ;
 : t2*  over >r >r d2* r> 2* r> 0< tf 1 and + ;
 
 variable divisor
@@ -87,7 +87,7 @@ variable divisor
                          ( m0 h l m1 )
     swap >r 0 d+ r>   ( m h l )
     -rot                 ( l m h )
-    16 0 do
+    32 0 do
         t2*
         dup divisor @ >= if
             divisor @ -
