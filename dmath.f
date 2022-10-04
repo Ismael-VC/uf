@@ -1,5 +1,5 @@
 \ mostly taken from:
-\ http://excamera.com/files/j1demo/docforth/nuc.fs.html
+\ https://web.archive.org/web/20181118215700/http://excamera.com/files/j1demo/docforth/nuc.fs.html
 
 : d=                        ( a b c d -- f )
     >r                      \ a b c
