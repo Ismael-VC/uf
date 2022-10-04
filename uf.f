@@ -67,8 +67,8 @@ only definitions
 : xor  xor ;
 : =  = ;
 : <>  <> ;
-: >=  swap < ;
-: <=  swap > ;
+: >=  1- swap < ;
+: <=  1+ swap > ;
 : drop  drop ;
 : nip  nip ;
 : dup  dup ;
