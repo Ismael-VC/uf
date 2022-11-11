@@ -336,7 +336,7 @@
     ,previous JMP
 
 @h56a 08 "previous :h56 @previous
-    ;null STH2 ;endvocs
+    LIT2r :null ;endvocs
 &restore
     #0002 SUB2 ;vocs LTH2k ,&done JCN
     POP2 LDA2k STH2 SWP2r STH2r SWP2 STA2k NIP2
