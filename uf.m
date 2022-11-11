@@ -42,7 +42,7 @@ into the public domain. Do with it whatever you like.
 Release History:
 
 Version 7:
-    * Fixed totally broken definitions of `>=` and `<='.
+    * Fixed off-by-one errors in `>=` and `<='.
 
 Version 6:
     * Added `include` and `included` (suggested by Alex Wennerberg).
