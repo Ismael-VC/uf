@@ -1,10 +1,15 @@
 ( Forth )
 
+%VERSION { 0006 }
+%VERSIONNAME { "6 00 }
+%COPYRIGHT { "(c)MMXXII 20 "Felix 20 "L. 20 "Winkelmann 00 }
+
 %wst { #ea }
 %rst { #eb }
 
 |100
 
+    ;meta #f0 DEO2
     #0000 ;uxn STA2
     #0002 DEO
     ( check for stack mapping feature: )
@@ -21,10 +26,83 @@
     ;&boot ;find JSR2 POP2 JMP2
 &boot 04 "boot
 
+@meta :metaend :icon
+"UF 00
+VERSIONNAME
+"Stack 20 "correctly! 00
+@copyright COPYRIGHT
+@metaend
+
 @h0 03 "uxn 0000 ;_const JSR2 @uxn 0000
 @h1 04 "base :h0 ;_var JSR2 @base 000a
 
-@h2 06 "number :h1 @number
+@h1a 04 "icon :h1 ;_var JSR2 @icon
+00 00 00 00 00 00 00 00 
+00 00 00 00 00 01 07 0f 
+00 00 07 3f 7f ff ff ff 
+05 ff ff ff ff ff ff ff 
+40 ff ff ff ff ff ff ff 
+00 00 e0 f8 fe ff ff ff 
+00 00 00 00 00 80 e0 f0 
+00 00 00 00 00 00 00 00 
+00 00 00 00 01 01 03 07 
+1f 3f 7f ff ff ff ff ff 
+ff ff ff ff ff ff ff ff 
+ff ff ff ff ff ff ff fc 
+ff ff ff ff ff cf 0f 07 
+ff ff ff ff ff ff ff ff 
+f8 fc fe ff ff ff ff ff 
+00 00 00 00 80 80 c0 e0 
+07 0f 1f 1f 1f 3f 3f 3f 
+ff ff ff ff ff ff ff ff 
+ff ff ff fe ff cf c3 80 
+f0 e0 80 00 00 00 82 87 
+03 03 03 0f 3f 5b 00 00 
+ff ff ff ff ff 6f 03 03 
+ff ff ff ff ff ff ff ff 
+e0 f0 f0 f8 f8 fc fc fc 
+7f 7f 7f 7f 7f 7f ff 7f 
+ff ff ff ff fe fe fe fc 
+80 81 01 01 03 03 07 07 
+de ff ff ff ff ff fe ff 
+00 00 00 00 24 00 00 00 
+03 03 03 07 93 03 03 03 
+ff ff ff ff ff ff ff ff 
+fe fe fe fe fe fe fe fe 
+ff 7f ff 7f 7f 7f 7f 7f 
+fc f8 fe ff ff ff ff fc 
+0f 0f 0e 98 e0 c0 00 00 
+fe ff 7f 7f 3e 3f 1e 1f 
+00 00 55 00 00 00 00 00 
+03 03 57 03 03 03 03 03 
+ff ff ff ff ff ff ff ff 
+ff fe fe fe fe fe fe fc 
+3f 3f 3f 1f 1f 0f 0f 07 
+f8 f0 f8 fc fc fe ff ff 
+00 01 07 0f 3f ff ff ff 
+7f ff fe ff fe ff fe ff 
+00 aa 00 00 00 00 00 00 
+03 af 03 03 03 03 03 07 
+ff ff ff ff ff ff ff ff 
+fc fc fc f8 f8 f0 f0 e0 
+07 03 03 01 00 00 00 00 
+ff ff ff ff ff 7f 3f 1f 
+ff ff ff ff ff ff ff ff 
+ff ff ff ff ff ff ff ff 
+ff ff ff ff ff ff ff ff 
+ff ff ff ff ff ff ff ff 
+ff ff ff ff ff fe fc f8 
+e0 c0 80 80 00 00 00 00 
+00 00 00 00 00 00 00 00 
+0f 03 01 00 00 00 00 00 
+ff ff ff 7f 1f 07 00 00 
+ff ff ff ff ff ff ff 01 
+ff ff ff ff ff ff fe 40 
+ff ff ff fe f8 e0 00 00 
+f0 c0 80 00 00 00 00 00 
+00 00 00 00 00 00 00 00 
+
+@h2 06 "number :h1a @number
     LIT2r 0000 #01 ;&sgn STA
     DUP2 ;&addr STA2
     ;count JSR2 OVR2 LDA #2d NEQ ,&loop JCN
@@ -34,7 +112,7 @@
     ,&ctake JSR ,&digit JSR NIP ,&ok JCN
     POP2 POP2 POP2 POP2r ;&addr LDA2 #0000 JMP2r
 &ok
-    STH2r ,base LDR2 MUL2 ADD2 STH2
+    STH2r ;base LDA2 MUL2 ADD2 STH2
     ,&loop JMP
 &done
     POP2 POP2 STH2r
@@ -502,5 +580,13 @@
     ,&loop JMP
 &n 00
 
-@htop 04 "boot :h93 ;prompt JSR2 ;quit JMP2
+@h94 07 "version :h93 ;_const JSR2 VERSION
+@h95 09 "copyright :h94
+    ;copyright DUP2 #0001 SUB2
+&loop
+    INC2 LDAk ,&loop JCN
+    ;copyright SUB2 
+    JMP2r
+
+@htop 04 "boot :h95 ;prompt JSR2 ;quit JMP2
 @here
