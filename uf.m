@@ -41,13 +41,15 @@ into the public domain. Do with it whatever you like.
 
 Release History:
 
-Version 7:
-    * Fixed off-by-one errors in `>=` and `<='.
-
 Version 6:
+    * Fixed off-by-one errors in `>=` and `<='.
+    * Allow ^x in unlocked mode.
     * Added `include` and `included` (suggested by Alex Wennerberg).
+    * Fixed bug in `clamp` and thus make `at-xy` work, which uses it.
     * Dropped ^i handling (uxnemu already shows stacks on F2).
     * Use text color for cursor to be visible in monochromatic mode.
+    * Added icon to banner.
+    * Added metadata.
 
 Version 5:
     * Added `audio` to select current audio device.
