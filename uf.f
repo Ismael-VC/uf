@@ -1098,9 +1098,12 @@ only definitions also editor
   loop ;
 
 defer banner
-: _banner  cr  ."   UF/" version .
-  ." - (c)MMXXII Felix L. Winkelmann" cr  2 spaces
-  unused u. ." bytes free."  cr  cr  prompt ;
+: _banner  10 4 at-xy  ." UF/" version .
+  ." - "  copyright type  cr  10 spaces
+  unused u. ." bytes free."
+  icon spritedata  6 6 position 
+  h# 76 auto  8 0  do  h# 41 sprite  loop  0 auto
+  0 10 at-xy  prompt ;
 ' _banner is banner
 : boot  initscreen  initcolors  theme
   dirty off  locked off  modified off
