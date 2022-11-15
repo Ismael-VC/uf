@@ -1019,8 +1019,7 @@ defer grabber  ( f -- )
   [char] r  ->  ['] grab-copy  s" copy:"  grab  0  |
   [char] m  ->  ['] grab-move  s" move:"  grab  0  |
   [char] g  ->  ['] grab-goto  s" goto:"  grab  0  |
-  [char] s  ->  save-block  0  |
-  [char] x  ->  copy-marked  0  |  drop  0 ;
+  [char] s  ->  save-block  0  |  drop  0 ;
 : (ctrl-key)  ( key -- key|0 )
   [char] a  ->  start  0  |  
   [char] c  ->  terminate 0  |
@@ -1029,6 +1028,7 @@ defer grabber  ( f -- )
   [char] k  ->  rkill  0  |  
   [char] u  ->  lkill  0  |  
   [char] v  ->  paste  0  |
+  [char] x  ->  copy-marked  0  |  
   [char] y  ->  paste  0  |
   [char] d  ->  delete  0  |
   13  ->  toggle-mark  0  |
