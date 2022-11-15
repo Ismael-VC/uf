@@ -1,10 +1,14 @@
 #!/bin/sh
-if [ -z "$2" ]; then
-    echo "usage: export BLOCK1 BLOCK2" >&2
+if [ -z "$1" ]; then
+    echo "usage: export BLOCK1 [BLOCK2]" >&2
     exit 1
 fi
-b=$1
-e=$(expr $2 + 1)
+b="$1"
+if [ -z "$2" ]; then
+    e=$(expr "$1" + 1)
+else
+    e=$(expr "$2" + 1)
+fi
 while [ "$b" != "$e" ]; do
     awk '
 function trim(s) {
