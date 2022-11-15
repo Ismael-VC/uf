@@ -56,6 +56,7 @@ init
 true [if]
 : boot  
     h# 0b75 h# 0da6 h# 0db8 colors
+    s" press ESC to quit." type  cr
     bounce  bye ;
 save bounce.rom
 bye
