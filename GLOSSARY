@@ -133,6 +133,7 @@ compare     ( a1 u1 a2 u2 -- n )    Compares memory lexicographically
 compile,    ( xt -- )               Compile execution token as subroutine call
 compiler    ( -- )                  replace the current vocabulary with the `compiler` vocabulary
 constant    ( x | <word> -- )       Define constant
+copyright   ( -- a )                Address of zero-terminated copyright string
 count       ( a1 -- a2 u )          Push counted string at a1 as start address and length
 cout        ( c -- )                Write character to console device [GD]
 cr          ( -- )                  Write newline character
@@ -190,6 +191,7 @@ hold        ( c -- )                Prepend character to numeric conversion
 holds       ( a u -- )              Prepend string to numeric conversion
 hour        ( -- u )                Push current hour
 i           ( -- u )                Push index of innermost `do` loop
+icon        ( -- a )                Address of UF logo (8x8 icn)
 if          ( f -- )                Start conditional [C]
 immediate   ( -- )                  Make most recent definition immediate
 include     ( | <name> -- )         Include file designated by "<name>" [X*]
