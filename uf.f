@@ -202,7 +202,7 @@ variable >voc  ' cdp 4 + >voc !
 : .(  [char] ) parse type ;
 : -trailing  begin  1- dup 0<  if  1+  |
   2dup + c@  bl <>  until  1+ ;
-: clamp  ( n min max -- n2 ) rot max min ;
+: clamp  ( n min max -- n2 ) rot min max ;
 : 2@  dup cell+ @ swap @ ;
 : 2!  swap over ! cell+ ! ;
 : :noname  also compiler  here (compile) ;
@@ -212,8 +212,6 @@ variable >voc  ' cdp 4 + >voc !
 : 2variable  ( | <word> -- ) create 0 , 0 , ;
 : 2constant  ( x y | <word> -- ) 
   head ['] (2constant) compile, swap , , ;
-
-6 constant version
 
 \ numeric formatting
 variable >num
