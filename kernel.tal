@@ -1,7 +1,7 @@
 ( Forth )
 
-%VERSION { 0006 }
-%VERSIONNAME { "6 00 }
+%VERSION { 0007 }
+%VERSIONNAME { "7 00 }
 %COPYRIGHT { "(c)MMXXII 20 "Felix 20 "L. 20 "Winkelmann 00 }
 
 %wst { #ea }
