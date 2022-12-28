@@ -309,7 +309,7 @@ Due to limitations of the "varvara" file-system interface files
 loaded with `include` (or `included`) may not exceed the
 currently available dictionary space divided by two as the
 file has to be loaded into memory completely before it can be
-interpreted. 
+interpreted. Moreover, file-inclusion can not be nested.
 
 
 IX. License
