@@ -269,7 +269,7 @@ only definitions
 variable >include   variable incend  
 variable oldquery   variable oldabort
 : endinclude  oldquery @  ['] query  defer!  ['] (prompt) is prompt
-  oldabort @ ['] abort defer!  >limit @ >in ! ;
+  oldabort @ ['] abort defer!  >limit @ >in !  >include off ;
 : abortinc  endinclude  abort ;
 : eol  ( a1 -- a2 f )
   count  13  ->  dup 1- bl swap c!  false  |
@@ -281,6 +281,7 @@ variable oldquery   variable oldabort
       tib >in !  tib r@ + >limit !  r> 1+ >include +!  |
   again ;
 : included  ( a u -- )
+  >include @ abort" nested `include` is not supported"
   filename  heaptop here - 2/ heaptop over - dup >include !
   swap fileread  0  ->  true abort" no such file"  |
   >include @ + dup incend !  heaptop = abort" file too big"
