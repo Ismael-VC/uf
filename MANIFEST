@@ -1,5 +1,7 @@
 README
 GLOSSARY
 kernel.tal
+lib/dmath.f
+lib/locals.f
 uf.f
 examples/bounce.f
