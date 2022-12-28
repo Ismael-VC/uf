@@ -144,7 +144,8 @@ f0 c0 80 00 00 00 00 00
 @h3 07 "/string :h2 @slashstring ( a n n2 -- a2 n2 )
     STH2k SUB2 SWP2 STH2r ADD2 SWP2 JMP2r
 
-@h4 04 "vocs :h3 ( -- a ) ;_var JSR2 @vocs :dp :null :null :null @endvocs
+@h4 04 "vocs :h3 ( -- a ) ;_var JSR2 
+@vocs :dp :null &mid :null :null @endvocs
 
 @h5 06 "within :h4 @within
     OVR2 SUB2 STH2 SUB2 STH2r LTH2 DUP JMP2r
@@ -346,7 +347,7 @@ f0 c0 80 00 00 00 00 00
 @h43 07 "current :h42 ;_var JSR2 @current :dp
 
 @h44 04 "also :h43 @also
-    ;vocs #0004 ADD2 ,&copy JSR
+    ;vocs/mid ,&copy JSR
     #0002 SUB2 ,&copy JSR
     #0002 SUB2 ,&copy JSR
     POP2 JMP2r
