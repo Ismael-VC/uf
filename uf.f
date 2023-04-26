@@ -311,7 +311,7 @@ variable devaudio  h# 30 devaudio !
 : spritedata  44 deo2 ;
 : sprite  47 deo ;
 : audio  ( u -- ) 4 lshift h# 30 + devaudio ! ;
-: sample  ( a -- ) devaudio @ 12 + deo2 ;
+: sample  ( a u -- ) devaudio @ 10 + dup>r deo2 r> 2 + deo2 ;
 : play  ( u -- ) devaudio @ 15 + deo ;
 : adsr  ( u -- ) devaudio @ 8 + deo2 ;
 : volume  ( u -- ) devaudio @ 14 + deo ;
