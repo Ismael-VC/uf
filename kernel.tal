@@ -1,7 +1,6 @@
 ( Forth )
 
 %VERSION { 0007 }
-%VERSIONNAME { "7 00 }
 %COPYRIGHT { "(c)MMXXII 20 "Felix 20 "L. 20 "Winkelmann 00 }
 
 %wst { #ea }
@@ -9,7 +8,6 @@
 
 |100
 
-    ;meta #f0 DEO2
     #0000 ;uxn STA2
     #0002 DEO
     ( check for stack mapping feature: )
@@ -26,12 +24,7 @@
     ;&boot ;find JSR2 POP2 JMP2
 &boot 04 "boot
 
-@meta :metaend :icon
-"UF 00
-VERSIONNAME
-"Stack 20 "correctly! 00
 @copyright COPYRIGHT
-@metaend
 
 @h0 03 "uxn 0000 ;_const JSR2 @uxn 0000
 @h1 04 "base :h0 ;_var JSR2 @base 000a
