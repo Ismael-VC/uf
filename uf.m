@@ -44,6 +44,9 @@ Release History:
 Version 7:
     * `include`/`included` catches attempts at nested inclusion
        (thanks to Alex Wennerberg for pointing this out).
+    * Fixed `sample` to also set the sample length (thanks to Harry 
+      Prins for pointing out this problem).
+    * Dropped metadata stuff.
     * Added "lib" subdirectory with a few helpful things.
 
 Version 6:
