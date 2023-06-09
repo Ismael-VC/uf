@@ -12,7 +12,7 @@
 ```
 
 
-Version: 7
+Version: 8
 
 
 "UF" is a traditional Forth system for the "uxn/varvara" virtual
@@ -37,9 +37,11 @@ into the public domain. Do with it whatever you like.
 
 <archive:/uf/uf.rom> Download precompiled ROM
 
-<archive:/uf/uf-7.tgz> Get the source code
+<archive:/uf/uf-8.tgz> Get the source code
 
 Release History:
+
+Version 8:
 
 Version 7:
     * `include`/`included` catches attempts at nested inclusion
