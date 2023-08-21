@@ -262,7 +262,7 @@ also compiler definitions
 : h#  h# literal ; immediate
 : d#  d# literal ; immediate
 only definitions
-: heaptop  uxn  if  h# ea00  else  h# ec40  then ;
+h# ec40 constant heaptop
 : unused  heaptop here - ;
 
 \ include
@@ -302,6 +302,7 @@ variable devaudio  h# 30 devaudio !
 : doty  200 dei2 ;
 : isdst  202 dei ;
 : colors  12 deo2  10 deo2  8 deo2 ;
+: evector  0 deo2 ;
 : svector  32 deo2 ;
 : screensize@  34 dei2  36 dei2 ;
 : screensize!  swap 34 deo2  36 deo2 ;
@@ -324,12 +325,16 @@ variable devaudio  h# 30 devaudio !
 : mscroll  ( -- x y ) 154 dei2  156 dei2 ;
 : mstate  150 dei ;
 : mvector  ( xt -- ) 144 deo2 ;
-: failing  ." machine error" cr  abort ;
+: catcher  ( inst/code -- )
+  255 and
+  1 ->  ." stack underflow"  cr  abort |
+  2 ->  ." stack overflow"  cr  abort |
+  3 ->  ." division by zero"  cr  abort |
+  ." unknown machine error"  cr  abort ;
 defer tick  ' noop is tick
 : waiting  tick  brk ;
-: wait  r>drop  ['] waiting svector  brk ;
-: pausing  ['] failing svector ;
-: pause  ['] pausing svector  brk ;
+: pause  r>drop  ['] waiting svector  brk ;
+: halt  ( code -- ) h# 80 or 15 deo  brk ;
 
 variable /snarfed
 : apply-theme  ( a -- ) @+ swap @+ swap @+ nip colors ;
@@ -533,6 +538,7 @@ end-code
 marker new
 .( saving ufx.rom ... ) cr
 ' (prompt) is prompt
+: boot  ['] catcher evector  prompt  quit ;
 save ufx.rom
 ' noop is prompt
 
@@ -830,8 +836,8 @@ defer ctrl-key  ( key -- key|0 )
 defer other-key  ( key -- )
 defer handle-button  ( key but -- key|0 )
 : input  0 pointer
-  jkey  jbutton handle-button  other-key  update  wait ;
-: no-events  0 jvector  0 mvector  0 cvector  ['] failing svector ;
+  jkey  jbutton handle-button  other-key  update  pause ;
+: no-events  0 jvector  0 mvector  0 cvector  0 svector ;
 
 variable loading    variable block
 variable endload
@@ -904,18 +910,18 @@ create editpos 0 , 0 ,
   block @ + 1 max edit ;
 : mouseinput  0 pointer  mouse>loc pointerx !  pointery !
   mscroll nip ?dup  if  shiftblock  then
-  1 pointer  clicked  wait ;
+  1 pointer  clicked  pause ;
 
 : handlecin  ( c -- )
   0  ->  |  9  ->  tab  |
   10  ->  enter  no-events  r>drop  |  insert ;
-: (stdin)  18 dei  handlecin  wait ;
+: (stdin)  18 dei  handlecin  pause ;
 : events  ['] input jvector  ['] stdin cvector
   ['] mouseinput mvector ;
 : listen  events
   dirty @ 0<>  locked @ 0<>  and  if
     buf>screen  redraw  update  dirty off  then
-  wait ;
+  pause ;
 
 : load1  ( u -- ) ."  #" dup . 
   loadbuf @ over fileblock 0= abort" no such block"
@@ -965,7 +971,6 @@ variable seen   2variable wstr
   again ;
 
 : error  ['] (prompt) is prompt  modified off
-  ['] failing svector
   locked @  if  noedit drop  then
   loading @  if ['] listen is query  loading off  endload off
     then  (abort) ;
@@ -998,7 +1003,7 @@ defer grabber  ( f -- )
     then  status ;
 : grab-cursor  127 >bdigits @ c!  drawstatus ;
 : ungrab  ( f -- ) grabber
-  1 cursor  events  ['] waiting svector ;
+  1 cursor  events ;
 : add-digit  ( c -- )
   bdigits @ 10 * over [char] 0 - + bdigits !
   >bdigits @ c!  1 >bdigits +!  grab-cursor ;
@@ -1009,7 +1014,7 @@ defer grabber  ( f -- )
   drop  true ;
 : grabbing  jkey grab-decode  if  brk  then ;
 : limbo  no-events  ['] grabbing jvector  
-  0 pointer  0 cursor  0 svector  brk ;
+  0 pointer  0 cursor  brk ;
 : grab  ( xt a u -- ) locked @ 0= ?exit
   bottomrow >row swap cmove  is grabber
   bdigits off  bottomrow 7 >screen >bdigits !
@@ -1106,7 +1111,7 @@ defer banner
   h# 76 auto  8 0  do  h# 41 sprite  loop  0 auto
   0 10 at-xy  prompt ;
 ' _banner is banner
-: boot  initscreen  initcolors  theme
+: boot  ['] catcher evector  initscreen  initcolors  theme
   dirty off  locked off  modified off
   ['] error is abort  ['] listen is query  ['] gemit is emit
   home  banner  quit ;
