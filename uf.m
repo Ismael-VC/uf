@@ -42,6 +42,14 @@ into the public domain. Do with it whatever you like.
 Release History:
 
 Version 8:
+    * Fixed corner case in "bounce" example (thanks to Harry Prins).
+    * Adapted kernel to newest UXN system version for stack-access
+      primitives.
+    * The kernel uses immediate branches were possible, which reduces
+      the kernel size slightly.
+    * `pause` has been removed, `wait` now installs the `tick` handler
+      and waits for events.
+    * Added `halt`.
 
 Version 7:
     * `include`/`included` catches attempts at nested inclusion
