@@ -22,12 +22,12 @@ decimal
 : select  ( u -- a ) ball * balls + ;
 : negate!  ( a -- ) dup @ negate swap ! ;
 : check-x  ( a n -- a )
-  dup 1 u<  if  drop  1  over ball-dx negate!  then
-  dup 504 u>  if  drop 504  over ball-dx negate!  then 
+  dup 2 u<  if  drop  1  over ball-dx negate!  then
+  dup 503 u>  if  drop 504  over ball-dx negate!  then 
   over ball-x ! ;
 : check-y  ( a n -- a )
-  dup 1 u<  if  drop  1  over ball-dy negate!  then
-  dup 312 u>  if  drop  312  over ball-dy negate!  then
+  dup 2 u<  if  drop  1  over ball-dy negate!  then
+  dup 311 u>  if  drop  312  over ball-dy negate!  then
   over ball-y ! ;
 : draw  ( c a -- )
   dup ball-x @ swap ball-y @ position  
