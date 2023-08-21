@@ -170,6 +170,7 @@ emits       ( c u -- )              `emit` c u times
 end-code    ( -- )                  End assembler word definition [X]
 end-structure ( -- )                End structure definition [X]
 erase       ( a u -- )              Clear memory
+evector     ( xt -- )               Set error ("catch") system vector [X]
 execute     ( xt -- )               Invoke execution token
 exit        ( -- )                  Exit word
 export      ( u1 u2 -- )            Dump contents of blocks u1 to u2 (inclusive) to the console [G]
@@ -185,6 +186,7 @@ find        ( a1 -- a2 n )          Locate counted string at a1 in vocabulary st
 forth       ( -- )                  Change current vocabulary to the default one
 h#          ( | <number> -- n )     Push hexadecimal numeric literal [X]
 h.          ( n -- )                Write hexadecimal number
+halt        ( code -- )             Terminate uxn VM with status code [X]
 here        ( -- a )                Push top of dictionary pointer
 hex         ( -- )                  Set `base` to 16
 hold        ( c -- )                Prepend character to numeric conversion
@@ -245,7 +247,7 @@ position    ( x y -- )              Set x/y fields of screen device [GX]
 postpone    ( | <word> -- )         Compile word if immediate or code to compile call to word if not [C]
 previous    ( -- )                  Pop topmost vocabulary on vocabulary stack
 prompt      ( -- )                  Show prompt before reading user input [D]
-query       ( -- )                  Read user input into `tib`
+query       ( -- )                  Read user input into `tib` [D]
 quit        ( ... -- )              Clear stacks and read user input
 r>          ( -- x )                Pop value from return stack
 r>drop      ( -- )                  Drop topmost value on return stack
