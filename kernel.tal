@@ -1,35 +1,91 @@
-( Forth )
+( UF
 
+  A 16 bit direct threaded Forth implementation for the "UXN" virtual machine
+  https://wiki.xxiivv.com/site/uxn.html. 
+
+The system is written in uxntal and Forth. This file contains the "kernel" part,
+the base code that is needed to get UF powerful enough to be further extended 
+in Forth. 
+
+Memory is organized as follows:
+
+    0000         0100                         `h` `pad`        ffff
+    |            |                            |   |            |
+    v            v                            v   v            v
+    +------------+----------+-----------------+----------------+
+    | <zeropage> | <kernel> | <compiled code> | <unused space> |
+    +------------+----------+-----------------+----------------+ )
+
+( Constants used in banner )
 %VERSION { 0008 }
 %COPYRIGHT { "(c)MMXXII 20 "Felix 20 "L. 20 "Winkelmann 00 }
 
-%wst { #ea }
-%rst { #eb }
+( Debug helper macro )
+%DBG { #010e DEO }
 
+( ROMs are loaded at 0x100 at execution starts here )
 |100
 
+( Set uxn version, and initialize the input pointer, input limit
+  variables and compilation state variables; then find the `boot` word
+  in the dictionary and invoke it )
     #0000 ;uxn STA2
-    #0002 DEO
-    ( check for stack mapping feature: )
-    #beef #02 DEI NIP NIP ,&nomap JCN
-    wst #02 DEO
-    rst #03 DEO
-    ;mreset ;resetv STA2
-    ;mclear ;clearv STA2
-    ;mdepth ;depthv STA2
-    #000b ;uxn STA2
-&nomap
     #0000 ;pin STA2k POP2 ;plimit STA2k POP2
     ;state STA2
     ;&boot ;find JSR2 POP2 JMP2
 &boot 04 "boot
 
+( Store copyright string here )
 @copyright COPYRIGHT
 
-@h0 03 "uxn 0000 ;_const JSR2 @uxn 0000
-@h1 04 "base :h0 ;_var JSR2 @base 000a
+( This is the first word in in the Forth dictionary, the central data structure
+  that maps Forth words to machine code addresses. Each entry in the dictionary
+  is structured like this:
 
-@h1a 04 "icon :h1 ;_var JSR2 @icon
+           +---------+-----------+--------+------------+
+  @<label> | <count> | <name> ...| <link> | <code> ... |
+           +---------+-----------+--------+------------+
+
+  The <count> holds the length of the ASCII characters in <name>, the <link> points
+  to the previous word in the dictionary and the <code> contains UXN code. 
+  Sometimes the code is preceded with another label, so we can call it directly
+  in other parts of the kernel.
+
+  In the following, each dictionary definition is preceded by a stack comment,
+  like this:
+
+  ( ... -- ... )
+
+  The part before the "--" shows the expected elements on the data stack, each a 
+  16 bit word, the part after the "--" shows the values left on the stack after
+  the word executed. Common abbreviations are:
+
+  x     an arbitrary machine word
+  a     an address
+  u     an unsigned integer
+  n     a signed integer 
+  f     a flag
+  c     an ASCII character or byte
+  xt    an "execution token" (code address)
+
+  A comment like
+
+  ( ... | <more> -- ... )
+
+  means the word parses further text from the input stream. )
+
+( `uxn` - Version of uxn machine - always 0 )
+( -- u )
+@h0 03 "uxn 0000 const_ @uxn 0000
+
+( `base` - Number base, used in string -> number conversion )
+( -- a )
+@h1 04 "base :h0 var_ @base 000a
+
+( `icon` - The icon shown in the banner in the graphical variant run with "uxnemu".
+  Remember: stack correctly! )
+( -- a )
+@h1a 04 "icon :h1 var_
 00 00 00 00 00 00 00 00 
 00 00 00 00 00 01 07 0f 
 00 00 07 3f 7f ff ff ff 
@@ -95,35 +151,45 @@ ff ff ff fe f8 e0 00 00
 f0 c0 80 00 00 00 00 00 
 00 00 00 00 00 00 00 00 
 
+( `number` - Convert "counted string" to numeric value. A counted string is a sequence
+  of ASCII characters preceded by the length. This implies that counted strings
+  can not be longer than 255 characters: 
+
+  +---+---+---+---+---+---+
+  | 5 | H | E | L | L | O |
+  +---+---+---+---+---+---+ 
+
+  Uses `base` as the current base for numeric conversion )
+( a -- n )
 @h2 06 "number :h1a @number
     LIT2r 0000 #01 ;&sgn STA
     DUP2 ;&addr STA2
     ;count JSR2 OVR2 LDA #2d NEQ ,&loop JCN
-    #00 ;&sgn STA #0001 ;slashstring JSR2
+    #00 ;&sgn STA #0001 slashstring
 &loop
     ORAk #00 EQU ,&done JCN
-    ,&ctake JSR ,&digit JSR NIP ,&ok JCN
+    number/ctake number/digit NIP ,&ok JCN
     POP2 POP2 POP2 POP2r ;&addr LDA2 #0000 JMP2r
 &ok
     STH2r ;base LDA2 MUL2 ADD2 STH2
-    ,&loop JMP
+    !number/loop
 &done
     POP2 POP2 STH2r
-    ;&sgn LDA ,&done2 JCN
+    ;&sgn LDA ?number/done2
     #0000 SWP2 SUB2
 &done2
     #ffff JMP2r
 &ctake  ( a n -- a2 n2 c )
-    OVR2 LDA STH #0001 ;slashstring JSR2 STHr #00 SWP JMP2r
+    OVR2 LDA STH #0001 slashstring STHr #00 SWP JMP2r
 &digit  ( c -- n f )
-    DUP2 #0030 #003a ;within JSR2 ORA #00 EQU ,&d2 JCN 
-    #0030 SUB2 ,&range JMP
+    DUP2 #0030 #003a within ORA #00 EQU ,&d2 JCN 
+    #0030 SUB2 !number/range
 &d2
-    DUP2 #0061 #007b ;within JSR2 ORA #00 EQU ,&d3 JCN 
-    #0057 SUB2 ,&range JMP
+    DUP2 #0061 #007b within ORA #00 EQU ,&d3 JCN 
+    #0057 SUB2 !number/range
 &d3
-    DUP2 #0041 #005a ;within JSR2 ORA #00 EQU ,&d4 JCN 
-    #0037 SUB2 ,&range JMP
+    DUP2 #0041 #005a within ORA #00 EQU ,&d4 JCN 
+    #0037 SUB2 !number/range
 &d4
     #0000 JMP2r
 &range  ( n -- n f )
@@ -134,91 +200,116 @@ f0 c0 80 00 00 00 00 00
 &addr $02
 &sgn 00
 
-@h3 07 "/string :h2 @slashstring ( a n n2 -- a2 n2 )
+( `/string` - Advance an address/length pair by u2 bytes; this is the other
+  representation of strings used: two values with an address and a count )
+( a1 u1 u2 -- a2 u2 )
+@h3 07 "/string :h2 @slashstring
     STH2k SUB2 SWP2 STH2r ADD2 SWP2 JMP2r
 
-@h4 04 "vocs :h3 ( -- a ) ;_var JSR2 
+( `vocs` - A buffer of 4 elements with dictionary entry points, `find` searches
+  through each chain until it finds the given name - or not )
+( -- a )
+@h4 04 "vocs :h3 var_
 @vocs :dp :null &mid :null :null @endvocs
 
+( `within` - Test whether n3 is within n1 and n2, exclusive )
+( n1 n2 n3 -- f )
 @h5 06 "within :h4 @within
     OVR2 SUB2 STH2 SUB2 STH2r LTH2 DUP JMP2r
 
+( `find` - Find a counted string in the dictionary, goes through each entry-point in
+  `vocs` and returns the "execution token", which is the address of the code of the
+  found word and a flag that specifies whether the word is immediate [1], non-immediate
+  [-1] or not found at all [0]; in the latter case a2 will be the original counted
+  string argument )
+( a1 -- a2 n )
 @h6 04 "find :h5 @find
     STH2 ;vocs
 &vloop
     LDA2k LDA2
 &loop
-    ORAk ,&next JCN
-    POP2 INC2 INC2 ;endvocs EQU2k ,&fail JCN
-    POP2 ,&vloop JMP
+    ORAk ?find/next
+    POP2 INC2 INC2 ;endvocs EQU2k ?find/fail
+    POP2 !find/vloop
 &fail
     POP2 POP2
     STH2r #0000 JMP2r
 &next
-    DUP2 ;count JSR2 #7f AND STH2kr ;count JSR2
-    ,compare JSR NIP ,&other JCN
+    DUP2 count #7f AND STH2kr count
+    compare NIP ?find/other
     POP2r LDAk STHk #3f AND #03 ADD #00 SWP ADD2
-    STHr #80 AND ,&imm JCN
+    STHr #80 AND ?find/imm
     NIP2 #ffff JMP2r
 &imm
     NIP2 #0001 JMP2r
 &other
-    LDAk #3f AND INC #00 SWP ADD2 LDA2 ,&loop JMP
+    LDAk #3f AND INC #00 SWP ADD2 LDA2 !find/loop
 
+( `compare` - Compare two strings and return an integer designating whether the 
+  strings are equal [0], the first one is lexicographically before [-1] or after
+  the second string [1] )
+( a1 u1 a2 u2 -- n )
 @h7 07 "compare :h6 @compare
     ,&len2 STR2 SWP2 ,&len1 STR2k POP
     ,&len2 LDR2 LTH2k JMP SWP2 POP2 STH2
 &loop
-    STH2kr ORA ,&next JCN
+    STH2kr ORA ?compare/next
     POP2 POP2 POP2r
     ,&len1 LDR2 ,&len2 LDR2 SUB2 JMP2r
 &next
     LIT2r 0001 SUB2r
     SWP2 LDAk STH INC2 SWP2 LDAk STH INC2
-    SUBr STHkr ,&diff JCN
-    POPr ,&loop JMP
+    SUBr STHkr ?compare/diff
+    POPr !compare/loop
 &diff
-    POP2 POP2 STHr POP2r ,sext JMP
+    POP2 POP2 STHr POP2r !sext
 &len1 $02 &len2 $02
 
+( Helper routine for sign-extension )
 @sext
-    DUP #80 AND ,&neg JCN #00 SWP JMP2r
+    DUP #80 AND ?sext/neg #00 SWP JMP2r
 &neg
     #ff SWP JMP2r
 
-@h8 05 "reset :h7 @reset LIT2k @resetv :&dreset JMP2
-&dreset
-    STH2r
-    #0003 DEO 
-    JMP2
-@mreset
-    STH2r 
-    #00 rst #ff STA
-    JMP2
+( `reset` - Clear the return-stack )
+( -- )
+@h8 05 "reset :h7 @reset
+    STH2r  #0005 DEO  JMP2
 
-@h9 05 "clear :h8 @clear LIT2k @clearv :&dclear JMP2
-&dclear
-    #0002 DEO
-    JMP2r
-@mclear
-    #00 wst #ff STA
-    JMP2r
+( `clear` - Clear the value stack )
+( ... -- )
+@h9 05 "clear :h8 @clear
+    #0004 DEO  JMP2r
 
-@h10 05 "query :h9 @query ;&vec JMP2 &vec
-    ;tib #0400 ;accept JSR2 ;tib ADD2 ;plimit STA2 
+( `query` - Read input using `accept` and store it in the text input buffer,
+  delimited by the `>in` and `>limit` variables )
+( | ... -- )
+@h10 05 "query :h9 @query ;&vec JMP2 &vec ( simulate deferred word )
+    ;tib #0400 accept  ;tib ADD2 ;plimit STA2 
     ;tib ;pin STA2 JMP2r
 
-@h11 03 "tib :h10 ;_var JSR2 @tib $0400
-@h12 03 ">in :h11 ;_var JSR2 @pin 0000
-@h13 06 ">limit :h12 ;_var JSR2 @plimit 0000
+( `tib` - The text input buffer )
+( -- a )
+@h11 03 "tib :h10 var_ @tib $0400
 
+( `>in` - Points to the next character to be fetched from the TIB )
+( -- a )
+@h12 03 ">in :h11 var_ @pin 0000
+
+( `>limit` - Points to the end of the text currently in the TIB )
+( -- a )
+@h13 06 ">limit :h12 var_ @plimit 0000
+
+( `accept` - Read characters using the `key` word and store them at the given
+  address, returns the number of characters read )
+( a u1 -- u2 )
 @h14 06 "accept :h13 @accept
     ,&getn STR2 ,&input STR2 #0000 ,&all STR2
 &loop
-    ;key JSR2 NIP DUP #0a EQU ,&nl JCN
+    ;key JSR2 NIP DUP #0a EQU ?accept/nl
     ,&input LDR2 STAk INC2 ,&input STR2 POP
-    ,&all LDR2 INC2 DUP2 ,&all STR2 ,&getn LDR2 EQU2 ,&done JCN
-    ,&loop JMP
+    ,&all LDR2 INC2 DUP2 ,&all STR2 ,&getn LDR2 EQU2 ?accept/done
+    !accept/loop
 &nl
     POP
 &done
@@ -227,278 +318,468 @@ f0 c0 80 00 00 00 00 00
 &getn 0000
 &input 0000
 
+( `quit` - Resets all stacks and enter the main interaction loop, this word never
+  returns )
+( ... | ... -- )
 @h15 04 "quit :h14 @quit
-    ;reset JSR2 ;clear JSR2
+    reset  clear
 &loop
-    ;query JSR2 ,interpret JSR ,prompt JSR
-    ,&loop JMP
+    query  interpret  prompt
+    !quit/loop
 
+( `(prompt)` - The default behaviour of `prompt`: prints "ok\n" )
+( -- )
 @h16 08 "(prompt) :h15
-    ;&prompt #0004 ,type JMP
+    ;&prompt #0004 !type
 &prompt 20 "ok 0a
 
-@h17 06 "prompt :h16 @prompt ;noop JMP2
+( `prompt` - A deferred word that shows a prompt message before waiting for
+  user interaction )
+( -- )
+@h17 06 "prompt :h16 @prompt ;noop JMP2 ( deferred )
 
+( `type` - Writes a string character by character using the `emit` word )
+( a u -- )
 @h18 04 "type :h17 @type
-    ORAk ,&next JCN
+    ORAk ?type/next
     POP2 POP2 JMP2r
 &next
-    #0001 SUB2 SWP2 LDAk #00 SWP ;emit JSR2 INC2 SWP2
-    ,type JMP
+    #0001 SUB2 SWP2 LDAk #00 SWP  emit  INC2 SWP2
+    !type
 
+( `interpret` - Parses a word from the input buffer using `word`, searches it in the
+  dictionary using `find` and either invokes it, if found, or tries to convert it into
+  a number by using `number`. If all fails, an error is shown )
+( ... | ... -- ... )
 @h19 09 "interpret :h18 @interpret
-    #0020 ;word JSR2 LDAk ,&next JCN
+    #0020  word  LDAk ?interpret/next
     POP2 JMP2r
 &next
-    ;find JSR2 NIP ,&exec JCN
-    ;number JSR2 NIP ,interpret JCN
-    ,undefd JMP
+    find  NIP ?interpret/exec
+    number  NIP  ?interpret
+    !undefd
 &exec
-    JSR2 ,interpret JMP
+    JSR2  !interpret
 
+( `count` - Fetches the first byte of a counted string and adds 1 to the address,
+  handy in many cases, not necessarily only for counted strings )
+( a1 -- a2 u )
 @h20 05 "count :h19 @count
     LDAk STH INC2 STHr #00 SWP JMP2r
 
+( `undefd` - Writes a counted string using `emit` followed by question mark and
+  calls `abort` )
+( ... a -- )
 @h21 06 "undefd :h20 @undefd
-    #0020 ;emit JSR2  ;count JSR2 ;type JSR2 
-    ;&qnl #0003 ;type JSR2 ,abort JMP
+    #0020  emit  count  type
+    ;&qnl #0003  type  !abort
 &qnl
     20 "? 0a
 
-@h22 05 "abort :h21 @abort ;abort0 JMP2
+( `abort` - Hook for aborting, default behaviour is `(abort)` )
+( ... -- )
+@h22 05 "abort :h21 @abort ;abort0 JMP2 ( deferred )
+
+( `(abort)` -  Resets the compilation state, numeric base and vocabulary stack and
+  invokes `quit` )
 @h22a 07 "(abort) :h22 @abort0
     #0000 ;state STA2 #000a ;base STA2 
-    ;only JSR2 ;quit JMP2
+    only  !quit
 
-@h23 05 "state :h22a ;_var JSR2 @state 0000
+( `state` - Variable set to true when the system is currently in "compilation" state,
+  that is, it is parsing and compiling a colon (`:`) definition )
+( -- a )
+@h23 05 "state :h22a var_ @state 0000
 
-@h24 04 "word :h23 @word    ( c | ... -- a )
-    ;getc JSR2 NIP
-    DUP #20 EQU ,&loop JCN
-    DUP #09 EQU ,&loop JCN
+( `word` - Takes a character and parses input from the TIB until the end of TIB
+  is reached (`>limit`) or until the character or space is encountered; the address 
+  of a counted string holding the parsed word is returned )
+( c | ... -- a )
+@h24 04 "word :h23 @word
+    getc  NIP
+    DUP #20 EQU ?word/loop
+    DUP #09 EQU ?word/loop
     POP ;pin LDA2k #0001 SUB2 SWP2 STA2
-    ;parse JSR2 ;&wbuf ;place JSR2 ;&wbuf JMP2r
+    parse
+    ;&wbuf  place  ;&wbuf JMP2r
 &loop
-    POP ,word JMP
+    POP !word
 &wbuf $40
 
-@h25 05 "place :h24 @place  ( a1 n a2 -- )
-    OVR2 OVR2 STH2 STH2 INC2 SWP2 ;cmove JSR2 
+( `place` - Copies the string given by an address/count pair to another address as
+  a counted string )
+( a1 n a2 -- )
+@h25 05 "place :h24 @place
+    OVR2 OVR2 STH2 STH2 INC2 SWP2  cmove 
     STH2r NIP STH2r STA JMP2r
 
-@h26 05 "cmove :h25 @cmove  ( a1 a2 n -- )
+( `cmove` - Copies memory around, starting at the first byte )
+( a1 a2 n -- )
+@h26 05 "cmove :h25 @cmove
     SWP2 STH2
 &loop
-    ORAk ,&next JCN
+    ORAk ?cmove/next
     POP2 POP2 POP2r JMP2r
 &next
     SWP2 LDAk STH2r STAk INC2 STH2 POP
-    INC2 SWP2 #0001 SUB2 ,&loop JMP
+    INC2 SWP2 #0001 SUB2 !cmove/loop
 
-@h27 05 "parse :h26 @parse  ( c | ... -- a u )
+( `parse` - Like `word`, but does not stop at whitespace and returns an address/count
+  pair of the parsed string, the data will not be copied and be valid until the TIB
+  is filled anew )
+( c | ... -- a u )
+@h27 05 "parse :h26 @parse
     ;pin LDA2 STH2
 &loop
-    ;pin LDA2 ;plimit LDA2 LTH2 #00 EQU ,&end JCN
-    ,getc JSR EQU2k ,&end2 JCN
-    POP2 ,&loop JMP
+    ;pin LDA2 ;plimit LDA2 LTH2 #00 EQU ?parse/end
+    getc  EQU2k  ?parse/end2
+    POP2 !parse/loop
 &end
     POP2 STH2r
     ;pin LDA2 OVR2 SUB2 JMP2r
 &end2    
     POP2 POP2 STH2r ;pin LDA2 OVR2 SUB2 #0001 SUB2 JMP2r
 
-@h28 04 "getc :h27 @getc    ( -- c )
+( `getc` - Fetch next byte from the TIB )
+( -- c )
+@h28 04 "getc :h27 @getc
     ;pin LDA2 LDAk STH INC2 ;pin STA2 STHr #00 SWP JMP2r   
 
-@h35 03 "deo :h28 ( c d -- ) NIP ROT POP DEO JMP2r
-@h36 03 "dei :h35 ( d -- c ) NIP DEI #00 SWP JMP2r
-@h37 04 "deo2 :h36 ( n d -- ) NIP DEO2 JMP2r
-@h38 04 "dei2 :h37 ( d -- n ) NIP DEI2 JMP2r
-@h39 01 "h :h38 ;_var JSR2 @h :here
+( `deo` - Write byte to device )
+( c u -- )
+@h35 03 "deo :h28 NIP ROT POP DEO JMP2r
+
+( `dei` - Reads a byte from a device )
+( u -- c )
+@h36 03 "dei :h35 NIP DEI #00 SWP JMP2r
+
+( `deo2` - Writes a short (2 bytes) to a device )
+( x u -- )
+@h37 04 "deo2 :h36 NIP DEO2 JMP2r
+
+( `dei2` - Reads a short from a device )
+( u -- x )
+@h38 04 "dei2 :h37 NIP DEI2 JMP2r
+
+( `h` - Variable holding the current top address of the used part of memory )
+( -- a )
+@h39 01 "h :h38 var_ @h :here
+
+( `noop` - Does nothing, sometimes useful for deferred words, for example )
+( -- )
 @h40 04 "noop :h39 @noop JMP2r
 
+( `?redef` - Check if the given counted string can be found in the dictionary
+  and print a warning if it does )
+( a -- )
 @h40a 06 "?redef :h40 @qredef 
-    DUP2 ;find JSR2 ORA ,&warn JCN
+    DUP2  find  ORA  ?qredef/warn
     POP2 POP2 JMP2r
 &warn
-    POP2 ;&msg #000b ;type JSR2 ;count JSR2 ;type JSR2 
-    #0020 ;emit JMP2
+    POP2 ;&msg #000b  type  count  type
+    #0020 !emit
 &msg 20 "redefined 20
 
-@h41 04 "head :h40a @head ( | <word> -- )
-    #0020 ;word JSR2 DUP2 ,qredef JSR
-    ;count JSR2
+( `head` - Creates an entry in the dictionary for the name given in the input
+  stream; the code field will be empty and needs to be created to make this word
+  usable )
+( | <word> -- )
+@h41 04 "head :h40a @head
+    #0020  word  DUP2 qredef  count 
     ;h LDA2 STH2
-    #1f AND STHk ;h LDA2 ;place JSR2
-    STHr INC #00 SWP ;allot JSR2
-    ;current LDA2 LDA2 ;comma JSR2
+    #1f AND STHk ;h LDA2  place
+    STHr INC #00 SWP  allot
+    ;current LDA2 LDA2  comma
     STH2r ;current LDA2 STA2 
     JMP2r
 
-@h42 02 "dp :h41 ;_var JSR2 @dp :htop :&forth 0000
+( `dp` - The default dictionary entry point, used internally to populate the
+  base dictionary )
+( -- a )
+@h42 02 "dp :h41 var_ @dp :htop :&forth 0000
 &forth 05 "forth
-@h43 07 "current :h42 ;_var JSR2 @current :dp
 
+( `current` - A variable holding the address of the dictionary entry point in which
+  the next entry will be created using `head` )
+( -- a )
+@h43 07 "current :h42 var_ @current :dp
+
+( `also` - Shifts the vocabulary stack to make place for a new vocabulary with the
+  currently last entry being shifted out; the current vocabulary given will be 
+  duplicated at front of the vocabulary stack and can now be overwritten by invoking
+  a defined vocabulary word )
+( -- )
 @h44 04 "also :h43 @also
-    ;vocs/mid ,&copy JSR
-    #0002 SUB2 ,&copy JSR
-    #0002 SUB2 ,&copy JSR
+    ;vocs/mid also/copy
+    #0002 SUB2 also/copy
+    #0002 SUB2 also/copy
     POP2 JMP2r
 &copy
     LDA2k OVR2 INC2 INC2 STA2 JMP2r
 
+( `jumpaddr,` - Internal word for compiling a short or long backward branch,
+  depending on distance; returns a flag indicating whether the jump is long [1]
+  or short [0] )
+( a -- f )
 @h44a 09 "jumpaddr, :h44 @cjumpaddr
-    DUP2 ;h LDA2 INC2 INC2 INC2 SUB2 #ff80 LTH2k ,&long JCN
-    POP2 LITk LITk SWP ,comma JSR POP POP2 #0000 JMP2r
+    DUP2 ;h LDA2 INC2 INC2 INC2 SUB2 #ff80 LTH2k ?cjumpaddr/long
+    POP2 LITk LITk SWP  comma  POP POP2 #0000 JMP2r
 &long
-    POP2 POP2 LITk LIT2k ,ccomma1 JSR ,comma JSR #0001 JMP2r
+    POP2 POP2 LITk LIT2k  ccomma1  comma  #0001 JMP2r
 
+( `compile,` - Compiles an execution token (code address) )
+( xt -- )
 @h45 08 "compile, :h44a @compilecomma 
-    ,cjumpaddr JSR NIP ,&long JCN
-    LITk JSR ,ccomma1 JMP
+    cjumpaddr NIP ?compilecomma/long
+    LITk JSR  !ccomma1
 &long
-    LITk JSR2 ,ccomma1 JMP
+    LITk JSR2  !ccomma1 
 
+( `,` - Compiles an arbitrary word into the address of the currently available space
+  and advances `h` )
+( x -- )
 @h46 01 ", :h45 @comma  ;h LDA2 STA2k NIP2 INC2 INC2 ;h STA2 JMP2r
-@h47 02 "c, :h46  NIP @ccomma1 ;h LDA2 STAk INC2 ;h STA2 POP JMP2r
-@h48 05 "allot :h47 @allot  ( n -- ) ;h LDA2k ROT2 ADD2 SWP2 STA2 JMP2r
 
-@h49 01 "' :h48
-    #0020 ;word JSR2 ;find JSR2 ORA ,&found JCN
-    ;undefd JMP2
+( `c,` - Compiles a byte )
+( c -- )
+@h47 02 "c, :h46  NIP @ccomma1 ;h LDA2 STAk INC2 ;h STA2 POP JMP2r
+
+( `allot` - Advances `h` by a number of bytes )
+( n -- )
+@h48 05 "allot :h47 @allot ;h LDA2k ROT2 ADD2 SWP2 STA2 JMP2r
+
+( `'` - Takes the next word in the input stream and pushes its address or aborts
+  with an error if not found )
+( | <word> -- xt )
+@h49 01 "' :h48 @tick
+    #0020  word  find  ORA ?tick/found
+    !undefd
 &found
     JMP2r
 
-@h50 0a "(variable) :h49 @_var  STH2r JMP2r
-@h51 0a "(constant) :h50 @_const STH2r LDA2 JMP2r
+( `(variable)` - Internal code invoked for variable definitions which just pushes
+  the address )
+( -- a )
+@h50 0a "(variable) :h49 @var_  STH2r JMP2r
 
-@h52 0b "compilejmp, :h51
-    ;cjumpaddr JSR2 ,&long JCN
-    LITk JMP ,ccomma1 JMP
+( `(constant)` - Internal code invoked for constant definitions which just pushes
+  the contents )
+( -- x )
+@h51 0a "(constant) :h50 @const_ STH2r LDA2 JMP2r
+
+( `compilejmp,` - Compiles a backward JMP instruction, appropriate for the distance
+  required )
+( a -- )
+@h52 0b "compilejmp, :h51 @compilejmpcomma
+    cjumpaddr  ?compilejmpcomma/long
+    LITk JMP !ccomma1
 &long
-    LITk JMP2 ,ccomma1 JMP
+    LITk JMP2 !ccomma1
 
+( `(2constant) - Internal code invoked for double-word constant definitions which 
+  just pushes the contents )
+( -- x1 x2 )
 @h52a 0b "(2constant) :h52
     STH2r LDA2k SWP2 INC2 INC2 LDA2 JMP2r
 
-@h54 01 ": :h52a ( | <word> ... -- )
-    ;head JSR2 ;smudge JSR2 ;also JSR2 ;compiler JSR2 
-    ,compile JMP
+( `:` - Starts a compiled "colon" definition; during compilation the newly defined
+  word is "smudged", that is, made unfindable, so any occurrence of the defined
+  word refers to any previous definition )
+( | <word> ... -- )
+@h54 01 ": :h52a
+    head  smudge  also  compiler  !compile
 
-@h55 04 "null :h54 ;_var JSR2 @null 0000 0000
+( `null` - A variable holding zero, used in some places here )
+( -- a )
+@h55 04 "null :h54 var_ @null 0000 0000
 
+( `(compile)` - Sets compilation state to true and starts compiling words from the
+  input stream; each word parsed is either compiled as a call, invoked immediately
+  [for immediate words] or parsed as a number and compiled as code that pushes that
+  number; if a word can not be found or is not a number, then aborts with an error )
+( | ... -- )
 @h56 09 "(compile) :h55 @compile
     #ffff ;state STA2
 &loop
-    #0020 ;word JSR2 LDAk ,&cont JCN
-    POP2 ;query JSR2 ,&loop JMP
+    #0020  word  LDAk ?compile/cont
+    POP2  query  !compile/loop
 &cont
-    ;find JSR2 ORAk ,&found JCN
-    POP2 ;number JSR2 ORA ,&num JCN
-    ;undefd JMP2
+    find  ORAk ?compile/found
+    POP2  number  ORA ?compile/num
+    !undefd
 &num
-    LITk LIT2k ;ccomma1 JSR2 ;comma JSR2
-    ,&loop JMP
+    LITk LIT2k  ccomma1  comma
+    !compile/loop
 &found
     #0001 EQU2 ,&imm JCN
-    ;compilecomma JSR2
-    ,&loop JMP
+    compilecomma  !compile/loop
 &imm
-    JSR2 ;state LDA2 ORA ,&loop JCN
-    ,previous JMP
+    JSR2 ;state LDA2 ORA  ?compile/loop
+    !previous
 
+( `previous` - Shifts the vocabulary stack by one, popping the topmost entry )
+( -- )
 @h56a 08 "previous :h56 @previous
     LIT2r :null ;endvocs
 &restore
-    #0002 SUB2 ;vocs LTH2k ,&done JCN
+    #0002 SUB2 ;vocs LTH2k ?previous/done
     POP2 LDA2k STH2 SWP2r STH2r SWP2 STA2k NIP2
-    ,&restore JMP
+    !previous/restore
 &done
     POP2r POP2 POP2 JMP2r
 
-@h57 03 "cdp :h56a ;_var JSR2 @cdp 0000 :&compiler :dp
+( `cdp` - The "compiler" vocabulary, active during compilation of colon words )
+( -- a )
+@h57 03 "cdp :h56a var_ @cdp 0000 :&compiler :dp
 &compiler  ( hack: use following counted string )
+
+( `compiler` - Sets the topmost entry in the vocabulary stack to the "compiler"
+  vocabulary )
 @h58 08 "compiler :h57 @compiler ;cdp ;vocs STA2 JMP2r
 
+( `;` - Compiles a return instruction and ends compilation mode, "revealing" the
+  "smudged" word in the dictionary )
+( -- )
 @h59 81 "; :h58
-    LITk JMP2r ;ccomma1 JSR2
+    LITk JMP2r  ccomma1
     #0000 ;state STA2 
-    ;reveal JMP2
+    !reveal
 
+( `smudge` - Hides the topmost dictionary entry by fudging its name )
+( -- )
 @h60 06 "smudge :h59 @smudge 
     ;current LDA2 LDA2 LDAk #40 ORA ROT ROT STA JMP2r
 
+( `reveal` - Reveales the topmost dictionary entry by unfudging its name )
+( -- )
 @h61 06 "reveal :h60 @reveal 
     ;current LDA2 LDA2 LDAk #bf AND ROT ROT STA JMP2r
 
+( `immediate` - Marks the topmost dictionary entry as an "immediate" word )
+( -- )
 @h63 09 "immediate :h61 ;current LDA2 LDA2 LDAk #80 ORA ROT ROT STA JMP2r
+
+( `lshift` - Shift number to the left )
+( x1 u -- x2 )
 @h64 06 "lshift :h63 NIP #40 SFT SFT2 JMP2r
+
+( `rshift` - Shift number to the right )
+( x1 u -- x2 )
 @h65 06 "rshift :h64 NIP #0f AND SFT2 JMP2r
+
+( `(slit)` - Internal word used to push string literals )
+( -- a u )
 @h66 06 "(slit) :h65 STH2kr INC2 STH2r LDAk #00 SWP SWP2 OVR2 INC2 ADD2 JMP2
+
+( `tuck` - Push topmost word below the second )
+( x y -- y x y )
 @h67 04 "tuck :h66 STH2k SWP2 STH2r JMP2r
 
-@h68 04 "(if) :h67
-    STH2r SWP2 ORA ,&nobranch JCN
+( `(if)` - Internal word used in compiling conditional branches )
+( f -- )
+@h68 04 "(if) :h67 @if_
+    STH2r SWP2 ORA ?if_/nobranch
     LDA2 JMP2
 &nobranch
     INC2 INC2 JMP2
 
+( `(else)` - Internal word used in compiling unconditional branches )
+( -- )
 @h69 06 "(else) :h68  STH2r LDA2 JMP2
+
+( `u/mod` - Compurte unsigned division and remainder results, pushing quotient last )
+( u1 u2 - u3 u4 )
 @h72 05 "u/mod :h69 DIV2k STH2k MUL2 SUB2 STH2r JMP2r
+
+( `umod` - Compute unsigned remainder )
+( u1 u2 -- u3 )
 @h73 04 "umod :h72 DIV2k MUL2 SUB2 JMP2r
 
-@h74 04 "fill :h73
+( `fill` - Fill block of memory with byte )
+( a u c -- )
+@h74 04 "fill :h73 @fill
     STH POP
 &loop
-    ORAk ,&cont JCN
+    ORAk ?fill/cont
     POP2 POP2 POPr JMP2r
 &cont
     STHkr DUP ROT2 STAk NIP2 INC2 SWP2
-    #0001 SUB2 ,&loop JMP
+    #0001 SUB2 !fill/loop
 
-@h76 04 "emit :h74 @emit ;&vec JMP2 &vec NIP #18 DEO JMP2r
+( `emit` - Write an ASCII character to the console device; this word will later
+  be modified for the graphical variant )
+( c -- )
+@h76 04 "emit :h74 @emit ;&vec JMP2 &vec NIP #18 DEO JMP2r ( deferred )
 
-@h77 03 "key :h76 @key ;&vec JMP2 &vec 
+( `key` - Read an ASCII character from the console device; this word will later
+  be modified for the graphical variant )
+( -- c )
+@h77 03 "key :h76 @key ;&vec JMP2 &vec ( deferred )
     ;&getkey #10 DEO2 BRK
 &getkey
     #12 DEI #0000 #10 DEO2 #00 SWP JMP2r
 
+( `<` - Pushes 1 if the first argument is less than the second or 0 otherwise )
+( n1 n2 -- f )
 @h78 01 "< :h77
     #8000 ADD2 SWP2 #8000 ADD2 GTH2 DUP
     JMP2r
 
+( `>` - Pushes 1 if the first argument is greater than the second or 0 otherwise )
+( n1 n2 -- f )
 @h79 01 "> :h78
     #8000 ADD2 SWP2 #8000 ADD2 LTH2 DUP
     JMP2r
 
-@h80 06 "(loop) :h79 
-    STH2r SWP2 STH2 ADD2r GTH2kr STHr ,&loop JCN
+( `(loop)` - Internal word used for the compilation of DO ... LOOP
+  branches )
+( -- )
+@h80 06 "(loop) :h79 @loop_
+    STH2r SWP2 STH2 ADD2r GTH2kr STHr ?loop_/loop
     POP2r POP2r #00 ROT ROT JMP2
 &loop
     #01 ROT ROT JMP2
 
+( `i` - Pushes the current index of the innermost DO ... LOOP )
+( -- u )
 @h81 01 "i :h80 SWP2r STH2kr SWP2r JMP2r
+
+( `j` - Pushes the current index of the second innermost DO ... LOOP )
+( -- u )
 @h82 01 "j :h81 STH2r STH2r STH2r STH2kr SWP2 STH2 SWP2 STH2 SWP2 JMP2
+
+( `definitions` - Makes the topmost entry in the vocabulary the one that will
+  receive future entry definitions (using `head`) by setting `current` )
+( -- )
 @h83 0b "definitions :h82 ;vocs LDA2 ;current STA2 JMP2r
 
+( `only` - Clears the vocabulary stack and initializes it to the default `forth`
+  vocabulary )
+( -- )
 @h85 04 "only :h83 @only
     ;dp ;vocs STA2k NIP2 ;null SWP2 
     INC2 INC2 STA2k INC2 INC2 STA2k INC2 INC2 STA2 JMP2r
 
+( `?dup` - Duplicates the topmost stack entry unless it is 0 )
+( x -- x [x] )
 @h86 04 "?dup :h85 ORAk #00 EQU JMP DUP2 JMP2r
 
-@h87 06 "cmove> :h86
+( `cmove>` - Like `cmove`, but copies from the end )
+( a1 a2 u -- )
+@h87 06 "cmove> :h86 @cmover
     STH2k ADD2 SWP2 STH2r SWP2 STH2k ADD2
 &loop
     #0001 SUB2
-    STH2kr LTH2k ,&done JCN
+    STH2kr LTH2k ?cmover/done
     POP2 LDAk DUP ROT2 #0001 SUB2 STAk NIP2 SWP2
-    ,&loop JMP
+    !cmover/loop
 &done
     POP2r POP2 POP2 POP2 JMP2r
 
+( `abs` - Compute absolute value )
+( n -- u )
 @h88 03 "abs :h87 @abs
-    DUP2 #8000 AND2 POP ,&neg JCN
+    DUP2 #8000 AND2 POP ?abs/neg
     JMP2r
 &neg
     #0000 SWP2 SUB2
@@ -506,81 +787,102 @@ f0 c0 80 00 00 00 00 00
     JMP2r
 @divsign 00
 
-@h89 01 "/ :h88
+( `/` - Divides two numbers )
+( n1 n2 -- n3 )
+@h89 01 "/ :h88 @slash
     #01 ,divsign STR
-    SWP2 ,abs JSR
-    SWP2 ,abs JSR
+    SWP2  abs
+    SWP2  abs
     DIV2
-    ,divsign LDR ,&next JCN
+    ,divsign LDR ?slash/next
     #0000 SWP2 SUB2
 &next
     JMP2r
 
-@h89a 04 "/mod :h89
+( `/mod` - Pushes remainder and quotient of two numbers )
+( n1 n2 -- n3 n4 )
+@h89a 04 "/mod :h89 @slashmod
     #01 ,divsign STR
-    SWP2 ,abs JSR
-    SWP2 ,abs JSR
+    SWP2  abs
+    SWP2  abs
     DIV2k STH2k MUL2 SUB2 
-    ,divsign LDR ,&next1 JCN
+    ,divsign LDR ?slashmod/next1
     #0000 SWP2 SUB2
 &next1
     STH2r
-    ,divsign LDR ,&next2 JCN
+    ,divsign LDR ?slashmod/next2
     #0000 SWP2 SUB2
 &next2
     JMP2r
 
+( `mod` -- Computes the remainder )
+( n1 n2 -- n3 )
 @h90 03 "mod :h89a
     SWP2 ,abs JSR
     SWP2 ,abs JSR
     DIV2k MUL2 SUB2 JMP2r
 
-@h91 09 "(loadrom) :h90
-    ;&start #0010 ;&end ;&start SUB2 ;cmove JSR2
+( `(loadrom)` - Loads the ROM from the file configured in the File/name device
+  entry at address 0100 and jumps to that address; this process is a bit convoluted
+  because we first need to copy the loading code into the zeropage so it isn't
+  overwritten by the loaded data )
+( -- )
+@h91 09 "(loadrom) :h90 @loadrom_
+    ;&start #0010 ;&end ;&start SUB2  cmove
     #0010 JMP2
 &start
     #ff00 #aa DEO2
-    #0100 #ac DEO2 #a2 DEI2 ORA ,&ok JCN
-    ;&fail #0013 ;type JSR2  ;abort JMP2
+    #0100 #ac DEO2 #a2 DEI2 ORA ?loadrom_/ok
+    ;&fail #0013  type  !abort
 &ok
     #0100 JMP2
 &end
 &fail "loading 20 "rom 20 "failed 0a
 
-@h92 05 "depth :h91 LIT2k @depthv :&ddepth JMP2
-&ddepth
-    #02 DEI #01 SFT #00 SWP
-    JMP2r
-@mdepth
-    wst #ff LDA #01 SFT #00 SWP
+( `depth` - Pushes the number of items on the data stack )
+( -- u )
+@h92 05 "depth :h91
+    #04 DEI #01 SFT #00 SWP
     JMP2r
 
-@h93 04 "pick :h92
+( `pick` - Fetches the u-th entry from the data stack )
+( ... u -- x )
+@h93 04 "pick :h92 @pick
     DUP ,&n STR
 &loop
-    DUP ,&next JCN
+    DUP ?pick/next
     POP2  DUP2
     ,&n LDR DUP
 &rloop
-    DUP ,&next2 JCN
+    DUP ?pick/next2
     POP2 JMP2r
 &next2
     STH2r ROT2 ROT2
     #01 SUB
-    ,&rloop JMP
+    !pick/rloop
 &next
     SWP2 STH2
     #01 SUB
-    ,&loop JMP
+    !pick/loop
 &n 00
 
-@h94 07 "version :h93 ;_const JSR2 VERSION
-@h95 09 "copyright :h94
+( `version` - Constant holding the current UF version )
+( -- u )
+@h94 07 "version :h93 const_ VERSION
+
+( `copyright` - Returns the copyright string and length )
+( -- a u )
+@h95 09 "copyright :h94 @copyright_
     ;copyright DUP2 #0001 SUB2
 &loop
-    INC2 LDAk ,&loop JCN
+    INC2 LDAk ?copyright_/loop
     ;copyright SUB2 
     JMP2r
 
-@htop 04 "boot :h95 ;prompt JSR2 ;quit JMP2
+( `boot` - The startup code, executed once a rom holding this kernel starts, the
+  default shows the prompt and enters the interaction loop; this word can be
+  redefined at any time, saving the current memory contents as a ROM will invoke
+  the topmost entry for `boot` found )
+( -- )
+@htop 04 "boot :h95  prompt  !quit
 @here
