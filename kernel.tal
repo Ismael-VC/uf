@@ -14,7 +14,9 @@ Memory is organized as follows:
     v            v                            v   v            v
     +------------+----------+-----------------+----------------+
     | <zeropage> | <kernel> | <compiled code> | <unused space> |
-    +------------+----------+-----------------+----------------+ )
+    +------------+----------+-----------------+----------------+
+
+`h` increases as code is compiled and data allocated. )
 
 ( Constants used in banner )
 %VERSION { 0008 }
@@ -49,7 +51,12 @@ Memory is organized as follows:
   The <count> holds the length of the ASCII characters in <name>, the <link> points
   to the previous word in the dictionary and the <code> contains UXN code. 
   Sometimes the code is preceded with another label, so we can call it directly
-  in other parts of the kernel.
+  in other parts of the kernel. An "immediate" word will have the highest bit in
+  <count> set to 1. During the compilation of a colon word, the <count> will further
+  be "smudged" by setting the second highest bit so it won't be found inside the
+  definition and can refer to an earlier definition.
+
+  Dictionary-entries are only significant to 32 characters.
 
   In the following, each dictionary definition is preceded by a stack comment,
   like this:
@@ -527,7 +534,8 @@ f0 c0 80 00 00 00 00 00
 &long
     POP2 POP2 LITk LIT2k  ccomma1  comma  #0001 JMP2r
 
-( `compile,` - Compiles an execution token (code address) )
+( `compile,` - Compiles an execution token (code address) into a LIT2k #xx[xx] JSR[2] 
+  sequence )
 ( xt -- )
 @h45 08 "compile, :h44a @compilecomma 
     cjumpaddr NIP ?compilecomma/long
@@ -667,7 +675,8 @@ f0 c0 80 00 00 00 00 00
 ( x1 u -- x2 )
 @h65 06 "rshift :h64 NIP #0f AND SFT2 JMP2r
 
-( `(slit)` - Internal word used to push string literals )
+( `(slit)` - Internal word used to push string literals, skips string embedded
+  in code and pushes address and length )
 ( -- a u )
 @h66 06 "(slit) :h65 STH2kr INC2 STH2r LDAk #00 SWP SWP2 OVR2 INC2 ADD2 JMP2
 
@@ -879,10 +888,14 @@ f0 c0 80 00 00 00 00 00
     ;copyright SUB2 
     JMP2r
 
+( `\` - Ignore rest of input line )
+( | ... -- )
+@h96 81 "\ :h95 ;pin LDA2 ;plimit STA2 JMP2r
+
 ( `boot` - The startup code, executed once a rom holding this kernel starts, the
   default shows the prompt and enters the interaction loop; this word can be
   redefined at any time, saving the current memory contents as a ROM will invoke
   the topmost entry for `boot` found )
 ( -- )
-@htop 04 "boot :h95  prompt  !quit
+@htop 04 "boot :h96  prompt  !quit
 @here

@@ -1,52 +1,183 @@
+\ UF - Forth part
+
+\ Once the kernel runs, it can be used to load and interpret this file, which
+\ adds more words and saves various ROM files during the process, resulting
+\ in Forth interpreters with varying functionality.
+
+\ Stack comments have the same meaning as in "kernel.tal". Note that
+\ the "(...)" Forth comment syntax is not yet available and will be added
+\ below.
+
+\ `literal` ( x -- ) Compile code to push a 16-bit value using LIT2k
 : literal  160 c, , ;
+
+\ Create next definitions in "compiler" vocabulary. During compilation
+\ these immediate words generate inline UXN code instead of compiling to 
+\ procedure calls as is done for "normal" Forth words.
+\ You can use it for your own optimizations: just define an immediate
+\ word in the "compiler" vocabulary in addition to your normal non-immediate
+\ word.
+
+\ (idiom) `also` duplicates item on the vocabulary stack, `compiler` changes
+\ topmost item to the "compiler" vocabulary, `definitions` makes the topmost
+\ entry (now "compiler") the one where future definitions are added.
 also compiler definitions
+
+\ `drop` ( x -- ) Pop topmost stack element, compiles a POP2
 : drop  34 c, ; immediate
+
+\ `nip` ( x y -- y ) Pop second stack element, compiles a NIP2
 : nip  35 c, ; immediate
+
+\ `swap` ( x y -- y x ) Swap stack elements, compiles SWP2
 : swap  36 c, ; immediate
+
+\ `rot` ( x y z -- y z x ) Rotate 3rd item to the top, compiles to ROT2
 : rot  37 c, ; immediate
+
+\ `-rot` ( x y z -- z x y ) Rotate top item to 3rd place, compiles to ROT2 ROT2
 : -rot  37 c,  37 c, ; immediate
+
+\ `dup` ( x -- x x) Duplicate top item, compiles to DUP2
 : dup  38 c, ; immediate
+
+\ `over` ( x y -- x y x ) Copies 2nd item to the top, compiles to OVR2
 : over  39 c, ; immediate
+
+\ `2dup` ( x y -- x y x y ) Duplicate 2 topmost items, compiles to OVR2 OVR2
 : 2dup  39 c,  39 c, ; immediate
+
+\ `2drop` ( x y -- ) Drops 2 topmost items, compiles to POP2 POP2
 : 2drop  34 c, 34 c, ; immediate
+
+\ `+` ( n1 n2 -- n3 ) Add 2 items, compiles to ADD2
 : +  56 c, ; immediate
+
+\ `-` ( n1 n2 -- n3 ) Subtract top item from the 2nd, compiles to SUB2
 : -  57 c, ; immediate
+
+\ `*` ( n1 n2 -- n3 ) Multiply, compiles to MUL2
 : *  58 c, ; immediate
+
+\ `u/` ( u1 u2 -- u3 ) Unsigned division, compiles to DIV2
 : u/  59 c, ; immediate
+
+\ `and` ( x1 x2 -- x3 ) Bitwise AND, compiles to AND2
 : and  60 c, ; immediate
+
+\ `or` ( x1 x2 -- x3 ) Bitwise OR, compiles to ORA2
 : or  61 c, ; immediate
+
+\ `xor` ( x1 x2 -- x3 ) Bitwise XOR, compiles to EOR2
 : xor  62 c, ; immediate
+
+\ `=` ( x1 x2 -- f ) Pushes 1 if x1 is equal to x2 or 0 otherwise, compiles to EQU2 DUP
 : =  40 c, 6 c, ; immediate
+
+\ `<>` ( x1 x2 -- f ) Pushes 1 if x1 is not equal to x2 or 0 otherwise, compiles 
+\   to NEQ2 DUP
 : <>  41 c, 6 c, ; immediate
+
+\ `u>` ( u1 u2 -- f ) Pushes 1 if u1 is higher than u2 or 0 otherwise, compiles 
+\   to GTH2 DUP
 : u>  42 c, 6 c, ; immediate
+
+\ `u<` ( u1 u2 -- f ) Pushes 1 if u1 is below u2 or 0 otherwise, compiles to LTH2 DUP
 : u<  43 c, 6 c, ; immediate
+
+\ `0<` ( n -- f ) Pushes $8000 if n is negative or 0 otherwise, compiles to #15 SFT2
 : 0<  128 c, 15 c, 63 c, ; immediate
+
+\ `>r` ( x -- ) Pop a value from the data stack and pushes it onto the return stack,
+\   compiles to STH2
 : >r  47 c, ; immediate
+
+\ `dup>r` ( x -- x ) Push the top item from the data stack and pushes it onto the 
+\   return stack, compiles to STH2k
 : dup>r  175 c, ; immediate
+
+\ `r>` ( -- x ) Pops the top item from the return stack and pushes it onto the data
+\   stack, compiles to STH2r
 : r>  111 c, ; immediate
+
+\ `r>drop` ( -- ) Drops the top item from the return stack, compiles to POP2r
 : r>drop  98 c, ; immediate
+
+\ `r@` ( -- x ) Pushes the top item from the return stack onto the data stack,
+\   compiles to STH2kr
 : r@  239 c, ; immediate
+
+\ `1+` ( n1 -- n2 ) Adds 1 to the topmost stack item, compiles to INC2
 : 1+  33 c, ; immediate
-: cell+  33 c, 33 c, ; immediate
+
+\ `1-` ( n1 -- n2 ) Subtracts 1 to the topmost stack item, compiles to #0001 SUB2
 : 1-  160 c, 1 , 57 c, ; immediate
+
+\ `cell+` ( n1 -- n2 ) Adds 2 to the topmost stack item, compiles to INC2 INC2
+: cell+  33 c, 33 c, ; immediate
+
+\ `exit` ( -- ) Returns from the current word, compiles to JMP2r
 : exit  108 c, ; immediate
+
+\ `@` ( a -- x ) Fetches the short from the given address and pushes it on the data stack,
+\   compiles to LDA2
 : @  52 c, ; immediate
+
+\ `!` ( x a -- ) Stores the 2nd item from the stack at the address at the top of the
+\   stack, compiles to STA2
 : !  53 c, ; immediate
+
+\ `c@` ( a -- c ) Fetches a byte, compiles to LDA #00 SWP
 : c@  20 c, 128 c, 0 c, 4 c, ; immediate
+
+\ `c!` ( c a -- ) Stores a byte, compiles to STA POP
 : c!  21 c, 2 c, ; immediate
+
+\ `2*` ( n1 -- n2 ) Multiples by 2, compiles to #10 SFT2
 : 2*  128 c, 16 c, 63 c, ; immediate
-: cells  128 c, 16 c, 63 c, ; immediate
+
+\ `2/` ( n1 -- n2 ) Divides by 2, compiles to #1 SFT2
 : 2/  128 c, 1 c, 63 c, ; immediate
+
+\ `cells` ( n1 -- n2 ) Multiples by size of short (i.e. 2), same as `2*`
+: cells  128 c, 16 c, 63 c, ; immediate
+
+\ `2>r` ( x y -- ) Takes 2 values from the data stack and pushes them on the return
+\   stack, compiles to SWP2 STH2 STH2
 : 2>r  36 c,  47 c,  47 c, ; immediate
+
+\ `2r>` ( -- x y ) Takes 2 values from the return stack and pushes them on the data
+\   stack, compiles to STH2r STH2r SWP2
 : 2r>  111 c,  111 c,  36 c, ; immediate
+
+\ `execute` ( xt -- ) Calls a word (any UXN code, in fact), compiles to JSR2
 : execute  46 c, ; immediate
+
+\ `brk` ( -- ) Stops UXN VM, waiting for events, compiles to BRK
 : brk  0 c, ; immediate
+
+\ `[_']` ( | <word> -- xt ) Compiles the address of the next word in the input stream
+\   as a literal value, compiles to LIT2k
 : [_']  ' literal ; immediate
+
+\ `[']` ( | <word> -- xt ) Similar to `[_']`, but ignores the topmost entry in the
+\   vocabulary stack; this is done to make `[']` to skip the "compiler" vocabulary -
+\   when we want to fetch word addresses during compile time, we want the real Forth
+\   word addresses, not the immediate code generators that compile code inline.
 : [']  vocs @ >r  null vocs !  ' literal  r> vocs ! ; immediate
 
+\ We are done with "compiler" words, now switch back to the "forth" vocabulary
 only definitions
+
+\ `on` ( a -- ) Store -1 at the given address
 : on  -1 swap ! ;
+
+\ `off` ( a -- ) Store 0 at the given address
 : off  0 swap ! ;
+
+\ The following are just "proper" variants of the inline words defined earlier in
+\ the "compiler" vocabulary, these are invoked in interpreted mode or when referred
+\ to via `[']`/`'`.
 : +  + ;
 : -  - ;
 : *  * ;
@@ -67,83 +198,205 @@ only definitions
 : xor  xor ;
 : =  = ;
 : <>  <> ;
-: >=  1- swap < ;
-: <=  1+ swap > ;
 : drop  drop ;
 : nip  nip ;
 : dup  dup ;
 : swap  swap ;
 : rot  rot ;
 : over  over ;
-: invert  -1 xor ;
-: negate  0 swap - ;
 : 1+  1+ ;
 : 1-  1- ;
 : 2*  2* ;
 : 2/  2/ ;
-: 0=  0 = ;
 : 0<  0< ;
 : 2r>  2r> ;
 : 2>r  2>r ;
-: 2r@  r> 2r> over over 2>r >r ;
-: here  h @ ;
-: forth  dp vocs ! ;
-: ]  also  compiler  (compile) ;
-: \  >limit @ >in ! ; immediate
 : -rot  -rot ;
 : 2drop  2drop ;
 : 2dup  2dup ;
-: 2nip  rot drop rot drop ;                  
-: 2swap  rot >r rot r> ;                 
-: 2over  >r >r 2dup r> -rot r> -rot ;
-: 2rot  >r >r 2swap r> r> 2swap ;
-: (  41 parse 2drop ; immediate
-: char  32 word 1+ c@ ;
 : brk  brk ;
-: sliteral  ['] (slit) compile,  tuck here place  1+ allot ;
-: unloop  r>  r>drop r>drop  >r ;
-: execute  r>drop  execute ;
 : cells  cells ;
 : cell+  cell+ ;
+
+\ `0=` ( x -- f ) Compares with zero
+: 0=  0 = ;
+
+\ `>=` ( n1 n2 - f ) Push 1 if first argument is greater or equal to second or 0 otherwise
+: >=  1- swap < ;
+
+\ `<=` ( n1 n2 - f ) Push 1 if first argument is less or equal to second or 0 otherwise
+: <=  1+ swap > ;
+
+\ `2r@` ( -- x y ) Pushes 2 topmost items from the return stack on the data stack
+: 2r@  r> 2r> over over 2>r >r ;
+
+\ `here` ( -- a ) Push address of first unused byte
+: here  h @ ;
+
+\ `forth` ( -- ) Set topmost entry in vocabulary stack to default "forth" vocabulary
+: forth  dp vocs ! ;
+
+\ `]` ( | ... -- ) push "compiler" vocabulary on vocabulary stack and start compiling 
+\   further words in input stream
+: ]  also  compiler  (compile) ;
+
+\ `invert` ( x1 -- x2 ) Invert bits of topmost stack item
+: invert  -1 xor ;
+
+\ `negate` ( n1 -- n2 ) Negate topmost stack item
+: negate  0 swap - ;
+
+\ `2nip` ( x y v w -- v w ) Drop 4d and 4th stack item
+: 2nip  rot drop rot drop ;                  
+
+\ `2swap` ( x y v w -- v w x y ) Swap topmost item pairs on stack
+: 2swap  rot >r rot r> ;                 
+
+\ `2over` ( x y v w -- x y v w x y ) Copy 2nd item pair to top
+: 2over  >r >r 2dup r> -rot r> -rot ;
+
+\ `2rot` ( x y v w p q -- v w p q x y ) Rotate item pairs
+: 2rot  >r >r 2swap r> r> 2swap ;
+
+\ `(` ( | ...) ) Skip characters in input stream until next ")"
+: (  41 parse 2drop ; immediate
+
+\ `char` ( | <word> -- c ) Parse next word in input stream and push the ASCII code
+\   of its first character
+: char  32 word 1+ c@ ;
+
+\ `sliteral` ( -- a u ) compile a string literal into the code area, the string
+\   will be embedded and skipped over, leaving address and length on the stack
+: sliteral  ['] (slit) compile,  tuck here place  1+ allot ;
+
+\ `unloop` ( -- ) pop 2 items from the return stack, making sure to keep the return 
+\   address, used to exit prematurely out of DO ... LOOP constructs
+: unloop  r>  r>drop r>drop  >r ;
+
+\ `execute` ( xt -- ) `execute`, but making sure to keep the return address
+: execute  r>drop  execute ;
+
+\ `cr` ( -- ) Write a newline using `emit`
 : cr  10 emit ;
 
+\ Further words for the "compiler" vocabulary, mostly control structures, compiler
+\ state manipulation and compiling inline literal
 also compiler definitions
+
+\ `[char]` ( | <word> -- c ) Generate code to push the first character of the
+\   next word in the input stream at run time
 : [char]  char literal ; immediate
+
+\ `s"` ( | ..." -- a u ) Compile a string constant, pushing address and length
 : s"  ( | ..." -- a u ) [char] " parse sliteral ; immediate
+
+\ `."` ( | ..." -- ) Compile a string literal and write it out using `type`
 : ."  ( | ..." -- ) 
   [char] " parse sliteral  ['] type compile, ; immediate
+
+\ `[` ( -- ) Switch to interpreted state and change topmost vocabulary stack entry
+\   to the "forth" vocabulary
 : [  state off  forth ; immediate
+
+\ `if` ( f | ... -- ) Conditional branch, compiles a call to `(if)` followed by the
+\   address to branch to, initially 0, later patched by `else` or `then`. The patch
+\   address will be kept on the data stack at compile time
 : if  ['] (if) compile,  here  0 , ; immediate
+
+\ `else` ( | ... -- ) Compile an unconditional branch and patch up the pending
+\   jump from the previous `if`, keep new patch address on stack
 : else  ['] (else) compile,  here  0 ,  swap here swap ! ; immediate
+
+\ `then` ( -- ) Patch previous jump, completing the `if` sequence
 : then  here swap ! ; immediate
+
+\ `cjump,` ( a -- ) Compile a conditional backward jump (JCN[2]), used for loops
 : cjump,  jumpaddr,  if  45  else  13  then  c, ;
+
+\ `jump,` ( a -- ) Compile an unconditional jump (JMP[2])
 : jump,  jumpaddr,  if  44  else  12  then  c, ;
+
+\ `begin` ( -- ) Start loop, just holding address on data stack during compile time
 : begin  here ; immediate
+
+\ `again` ( -- ) Compile jump to address on data stack at compile time
 : again  jump, ; immediate
+
+\ `until` ( f -- ) Compile a conditional (absolute) jump to address pushed on data
+\   stack by previous `begin` at compile time
 : until  ['] (if) compile,  , ; immediate
+
+\ `while` ( f -- ) Comple a conditional forward jump and leave patch address on data
+\   stack for BEGIN ... WHILE ... REPEAT loop
 : while  ['] (if) compile,  here  0 , ; immediate
+
+\ `repeat` ( -- ) Patch up branch and compile backwards jump
 : repeat  swap jump,  here swap ! ; immediate
-: (?abort)  ( f a u -- ) rot  if  type  cr  abort  else  2drop  then ;
+
+\ `(?abort`) ( f a u -- ) If flag is true, show string using `type` and abort,
+\   used for `abort"`
+: (?abort)  rot  if  type  cr  abort  else  2drop  then ;
+
+\ `abort"` ( f | ..." -- ) Show message and abort if flag is true
 : abort"  [char] " parse sliteral ['] (?abort) compile, ; immediate
+
+\ `|` ( -- ) Compile `exit` and patch existing jump address on data stack
 : |  [_'] exit execute  here swap ! ; immediate
+
+\ `->` ( x y | ... -- x ) Compare topmost stack entry with 2nd and skip code until
+\   next `|` (or `then`) if they don't match, otherwise drop topmost item and
+\   continue
 : ->  [_'] over execute  [_'] = execute  ['] (if) compile,  here 0 , 
   [_'] drop execute ; immediate
+
+\ `postpone` ( | <word> -- ) Look up the next word in the input stream and compile
+\   it - it is immediate, compile a call, if not then compile code that compiles a
+\   call
 : postpone  also forth
   32 word find  previous  0  ->  undefd  |
   1  ->  compile,  |  drop  literal ['] compile, compile, ; 
   immediate
+
+\ `(does>)` ( -- ) Change the code field of the most recently created word to
+\   Jump to the code following this word
 : (does>)  r>  current @ @ count 63 and + 3 + ! ;
+
+\ `does>` ( | ... -- a ) Compiles a call to `(does>)` followed by STH2r, effectively
+\   changing the previously defined word to execute the following code, with the 
+\   parameter field address pushed on the stack (of the data following the branch the 
+\   current location)
 : does>  ['] (does>) compile,  111 c, ; immediate
+
+\ `do` ( u1 u2 | ... loop -- ) Start a DO ... LOOP construct, pushing the start and
+\   limit on the return stack, compiling SWP2 STH2 STH2; leaves a 0 and the current code
+\   address on the data stack at compile time
 : do  36 c, 47 c, 47 c,  0  here ; immediate
-: ?do  36 c, 47 c, 47 c,  0 literal  0 literal  
-  here 2 -  44 c,  here ; immediate
+
+\ `?do` ( u1 u2 | ... loop -- ) Variant of `do` that checks limits before first
+\   iteration, compiling SWP2 STH2 STH2 #0000 #0000 JMP2; the latter jump address
+\   will be patched up to jump to the end of the loop before entering it the 
+\   first time
+: ?do  36 c, 47 c, 47 c,  0 literal  0 literal  here 2 -  44 c,  here ; immediate
+
+\ `patchloop` ( f a -- a ) Patches up a forward jump if the flag is true
 : patchloop  swap ?dup  if  here swap !  then ;
+
+\ `+loop` ( u -- ) Patches up forward branch and compiles `(loop)` which increases
+\   the loop index by u and branches back to the start of the loop if the limit is not
+\   reached yet
 : +loop  patchloop  ['] (loop) compile,  cjump, ; immediate
-: loop  1 literal  patchloop  ['] (loop) compile,  cjump, ; 
-  immediate
+
+\ `loop` ( -- ) Like `+loop`, increasing the loop index by 1
+: loop  1 literal  patchloop  ['] (loop) compile,  cjump, ; immediate
+
+\ `tailjump` ( -- ) Changes last compiled instruction from call to jump,
+\   changing JSR[2] to JMP[2]; if the previous instruction is different from a jump
+\   compile a JMP2r (normal return)
 : tailjump  here 1- dup c@  46  ->  44 swap c!  |  
   14  ->  12 swap c!  |  drop  108 c, ;
-: -;  current @ @ here <>  if  tailjump  else  108 c,  then
+
+\ `-;` ( -- ) Fixes last call to tailcall, if 
+: -;  current @ @ here <>  if  tailjump  else  108 c,  then  \ XXX why this check?
   state off  reveal ; immediate
 
 only definitions
