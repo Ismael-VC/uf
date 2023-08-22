@@ -16,7 +16,7 @@ Version: 8
 I. Introduction
 
 This is a traditional Forth system for the "uxn/varvara"[1] virtual
-computer. "UF" is written in Tal[2] and itself and provides an
+computer. "UF" is written in Tal[2] and Forth and provides an
 interactive text interface and screen editor. The implementation
 strategy is a mixture of subroutine-threading and native code
 generation, but currently only minimal optimizations are performed.
@@ -43,27 +43,27 @@ This will produce the following files:
         The kernel, containing minimal functionality to define new
         words.
 
-    uf0.rom
+    uf.rom
 
         The kernel and core words.
 
-    ufx.rom
+    ufc.rom
 
-        The functionality of "uf0.rom" together with words to access
+        The functionality of "uf.rom" together with words to access
         "varvara" device ports in a more convenient matter, and some
         basic tools (like `dump`).
 
-    uf.rom
+    ufx.rom
 
         The full graphical Forth system, including the block editor.
 
 
 III. Using UF
 
-Run "uf0.rom" and "ufx.rom" with "uxncli" as a normal terminal
-application. "uf.rom" should be executed with "uxnemu":
+Run "uf.rom" and "ufc.rom" with "uxncli" as a normal terminal
+application. "ufx.rom" should be executed with "uxnemu":
 
-    uxnemu uf.rom <arguments ...>
+    uxnemu ufx.rom <arguments ...>
 
 Additional command line arguments or console input will be redirected
 to the graphical input prompt and can be used to perform initialization,
@@ -147,9 +147,10 @@ You are also heavily encouraged to consult the source code in "uf.f".
 
 IV. Compatibility to other Forths
 
-Consult the "GLOSSARY" file for a list of supported Forth words.
-The dialect implemented in UF is mostly compatible to the Forth
-2012 Standard[3]. Notable differences include:
+Consult the "GLOSSARY" file for a list of supported Forth words
+and the extensively commented source files "kernel.tal" and "uf.f"
+for more information. The dialect implemented in UF is mostly compatible 
+to the Forth 2012 Standard[3]. Notable differences include:
 
 - The system is case-sensitive (`Abc` and `abc` name two different
   words)
@@ -187,7 +188,13 @@ words have a special meaning:
                             branch distance
 
 Currently only 16 labels can be defined. You can insert absolute
-references to other Forth words using the sequence `' <word> #"`.
+references to other Forth words using the sequence `' <word> #"`
+or by using the syntax
+
+    ` <word`
+
+to encode an immediate (JSI) call to a Forth word.
+
 Note that the stack is required to be aligned to shorts and that
 code-words should perform the equivalent of a "JMP2r" to return to
 the caller.

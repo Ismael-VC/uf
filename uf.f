@@ -1,26 +1,26 @@
 \ UF - Forth part
-
+\
 \ Once the kernel runs, it can be used to load and interpret this file, which
 \ adds more words and saves various ROM files during the process, resulting
 \ in Forth interpreters with varying functionality.
-
+\
 \ Stack comments have the same meaning as in "kernel.tal". Note that
 \ the "(...)" Forth comment syntax is not yet available and will be added
 \ below.
-
+\
 \ `literal` ( x -- ) Compile code to push a 16-bit value using LIT2k
 : literal  160 c, , ;
 
-\ Create next definitions in "compiler" vocabulary. During compilation
+\ Create next definitions in `compiler` vocabulary. During compilation
 \ these immediate words generate inline UXN code instead of compiling to 
 \ procedure calls as is done for "normal" Forth words.
 \ You can use it for your own optimizations: just define an immediate
-\ word in the "compiler" vocabulary in addition to your normal non-immediate
+\ word in the `compiler` vocabulary in addition to your normal non-immediate
 \ word.
-
+\
 \ (idiom) `also` duplicates item on the vocabulary stack, `compiler` changes
-\ topmost item to the "compiler" vocabulary, `definitions` makes the topmost
-\ entry (now "compiler") the one where future definitions are added.
+\ topmost item to the `compiler` vocabulary, `definitions` makes the topmost
+\ entry (now `compiler`) the one where future definitions are added.
 also compiler definitions
 
 \ `drop` ( x -- ) Pop topmost stack element, compiles a POP2
@@ -161,12 +161,12 @@ also compiler definitions
 : [_']  ' literal ; immediate
 
 \ `[']` ( | <word> -- xt ) Similar to `[_']`, but ignores the topmost entry in the
-\   vocabulary stack; this is done to make `[']` to skip the "compiler" vocabulary -
+\   vocabulary stack; this is done to make `[']` to skip the `compiler` vocabulary -
 \   when we want to fetch word addresses during compile time, we want the real Forth
 \   word addresses, not the immediate code generators that compile code inline.
 : [']  vocs @ >r  null vocs !  ' literal  r> vocs ! ; immediate
 
-\ We are done with "compiler" words, now switch back to the "forth" vocabulary
+\ We are done with `compiler` words, now switch back to the `forth` vocabulary
 only definitions
 
 \ `on` ( a -- ) Store -1 at the given address
@@ -176,7 +176,7 @@ only definitions
 : off  0 swap ! ;
 
 \ The following are just "proper" variants of the inline words defined earlier in
-\ the "compiler" vocabulary, these are invoked in interpreted mode or when referred
+\ the `compiler` vocabulary, these are invoked in interpreted mode or when referred
 \ to via `[']`/`'`.
 : +  + ;
 : -  - ;
@@ -233,10 +233,10 @@ only definitions
 \ `here` ( -- a ) Push address of first unused byte
 : here  h @ ;
 
-\ `forth` ( -- ) Set topmost entry in vocabulary stack to default "forth" vocabulary
+\ `forth` ( -- ) Set topmost entry in vocabulary stack to default `forth` vocabulary
 : forth  dp vocs ! ;
 
-\ `]` ( | ... -- ) push "compiler" vocabulary on vocabulary stack and start compiling 
+\ `]` ( | ... -- ) push `compiler` vocabulary on vocabulary stack and start compiling 
 \   further words in input stream
 : ]  also  compiler  (compile) ;
 
@@ -279,7 +279,7 @@ only definitions
 \ `cr` ( -- ) Write a newline using `emit`
 : cr  10 emit ;
 
-\ Further words for the "compiler" vocabulary, mostly control structures, compiler
+\ Further words for the `compiler` vocabulary, mostly control structures, compiler
 \ state manipulation and compiling inline literal
 also compiler definitions
 
@@ -295,7 +295,7 @@ also compiler definitions
   [char] " parse sliteral  ['] type compile, ; immediate
 
 \ `[` ( -- ) Switch to interpreted state and change topmost vocabulary stack entry
-\   to the "forth" vocabulary
+\   to the `forth` vocabulary
 : [  state off  forth ; immediate
 
 \ `if` ( f | ... -- ) Conditional branch, compiles a call to `(if)` followed by the
@@ -399,126 +399,340 @@ also compiler definitions
 : -;  current @ @ here <>  if  tailjump  else  108 c,  then  \ XXX why this check?
   state off  reveal ; immediate
 
+\ back to `forth` vocabulary
 only definitions
+
+\ `constant` ( x | <word> -- ) Define a constant word in the dictionary
 : constant  head ['] (constant) compile, , ;
+
+\ `variable` ( | <word> -- ) Define a variable
 : variable  head ['] (variable) compile, 0 , ;
+
+\ `create` ( | <word> -- ) Create a header without any code (yet)
 : create  head ['] (variable) compile, ;
+
+\ `buffer:` ( u | <word> -- ) Create a variable header for a buffer of u bytes
 : buffer:  create  allot ;
+
+\ `false` ( -- 0 ) The global "false" value
 0 constant false
+
+\ `true` ( -- -1 ) The canonical "true" value
 -1 constant true
+
+\ `bl` ( -- 32 ) The space character constant
 32 constant bl
-: "  ( | ..." -- a u ) 
-  [char] " parse >r  here r@ cmove  here r> dup allot ;
-: under+  ( n1 x n2 -- n3 x ) rot + swap ;
-: th  ( a1 u -- a2 ) 2* + ;
+
+\ `"` ( | ..." -- a u ) Define a string constant at interpretation time, this
+\   is not for compiled code, use `s"` there!
+: "  [char] " parse >r  here r@ cmove  here r> dup allot ;
+
+\ `under+` ( n1 x n2 -- n3 x ) Add top item on data stack to the 3rd item
+: under+  rot + swap ;
+
+\ `th` ( a1 u -- a2 ) Compute address of u-th short at address a1
+: th  2* + ;
+
+\ `min` ( n1 n2 -- n1/2 ) Minimum value
 : min  2dup <  if  drop  else  nip  then ;
+
+\ `max` ( n1 n2 -- n1/2 ) Maximum value
 : max  2dup >  if  drop  else  nip  then ;
+
+\ `pad` ( -- a ) Temporary address as scratch memory, valid until the next `allot`,
+\   `,`, `c,`
 : pad  here 256 + ;
 
+\ internal buffer for filenames
 256 buffer: fnbuf
-: filename  ( a u -- ) 255 min fnbuf place  0 fnbuf dup c@ + 1+ c! 
+
+\ `filename` ( a u -- ) Set filename slot in file device to the string given, 
+\   terminated by a zero character
+: filename  255 min fnbuf place  0 fnbuf dup c@ + 1+ c! 
   fnbuf 1+ 168 deo2 ;
+
+\ `filewrite` ( a u -- u2 ) Write buffer to file, return number of bytes written
 : filewrite  ( a u -- u2 ) 0 167 deo  170 deo2  174 deo2 162 dei2 ;
+
+\ `fileappend` ( a u -- u2 ) Append buffer to file, return number of bytes written
 : fileappend  ( a u -- u2 ) 1 167 deo  170 deo2  174 deo2 162 dei2 ;
+
+\ `fileread` ( a u -- u2 ) Read bytes from file, return number of bytes read
 : fileread  ( a u -- u2 ) 170 deo2  172 deo2  162 dei2 ;
+
+\ `filedelete` ( -- ) Delete file designated by filename device slot
 : filedelete  1 166 deo ;
-: saved  ( a1 u1 a3 u2 -- )  
-  filename  filewrite 0= abort" saving file failed" ;
+
+\ `saved` ( a1 u1 a2 u2 -- ) Write buffer at a1/u1 to file named by a2/u2 and
+\   report error when writing was unsuccessful (0 bytes were written)
+: saved  filename  filewrite 0= abort" saving file failed" ;
+
+\ `save` ( | <word> -- ) Write area from 0100 to top of used memory to file named
+\   by the next word in the input stream
 : save  256 here 256 -  bl word count saved ;
+
+\ `loadrom` ( a u -- ) Load ROM file named by a/u and start executing it
 : loadrom  ( a u -- ) filename (loadrom) ;
 
+\ `crash` ( ... -- ) Show error indicating an uninitialized deferred word
 : crash  ." uninitialized execution vector" cr  abort ;
+
+\ `defer` ( | <word> -- ) Define a "deferred" word, which can be changed later,
+\   the initial behaviour is to call `crash`
 : defer  head ['] crash literal  44 c, ;
+
+\ `defer!` ( xt1 xt2 -- ) Change the deferred word xt2 to call xt1
 : defer!  1+ ! ;
+
+\ `defer@` ( xt1 -- xt2 ) Fetch the execution token that is called when the 
+\   deferred word xt1 is invoked
 : defer@  1+ @ ;
+
+\ `is` ( xt | <word> -- ) Change the deferred word given in the input stream to
+\   call xt when invoked
 : is  ' defer! ;
 
+\ `bye` ( -- ) Deferred word to terminate UXN
 defer bye  
 : (bye)  1 15 deo  brk ;
 ' (bye) is bye
-variable >voc  ' cdp 4 + >voc !
-: vocabulary  create  >voc @  here >voc !  0 , current @ @ ,  ,  
-  does>  vocs ! ;
-: hex  16 base ! ;
-: decimal  10 base ! ;
-: +!  dup>r @ + r> ! ;
-: @+  dup @ >r 2 + r> ;
-: !+  over ! 2 + ;
-: space  bl emit ;
-: emits  begin  ?dup  while  over emit  1-  repeat  drop ;
-: spaces  bl swap emits ;
-: erase  0 fill ;
-: blank  bl fill ;
-: 0<>  if  -1  else  0  then ;
-: bounds  ( a1 n -- a2 a1 ) over + swap ;
-: ?exit  if r>drop  then ;
-: .(  [char] ) parse type ;
-: -trailing  begin  1- dup 0<  if  1+  |
-  2dup + c@  bl <>  until  1+ ;
-: clamp  ( n min max -- n2 ) rot min max ;
-: 2@  dup cell+ @ swap @ ;
-: 2!  swap over ! cell+ ! ;
-: :noname  also compiler  here (compile) ;
-: aligned  ( n1 -- n2 ) dup 1 and  if  1+  then ;
-: align  here aligned h ! ;
-: diff  swap - ;
-: 2variable  ( | <word> -- ) create 0 , 0 , ;
-: 2constant  ( x y | <word> -- ) 
-  head ['] (2constant) compile, swap , , ;
 
-\ numeric formatting
+\ A "vocabulary" is a separate chain of definition headers that can be added
+\ to the vocabulary stack to make definitions visible (via `find`).
+\ The vocabularies are chained together to be able to list them and restore
+\ them in bulk to a previous state. The structure is as follows
+\
+\   +--------+--------+--------+
+\   | <link> | <name> | <next> |
+\   +--------+--------+--------+
+\
+\ The <link> points to the header of the first defined word in the vocabulary or
+\ is zero to indicate the end of the chain. <Name> points to the counted string
+\ of the name of the vocabulary and <next> points to the next vocabulary (or 0)
+\ `find` searches vocabularies in the order in which they are pushed on the
+\ vocabulary stack, the latest (topmost) is searched first.
+
+\ `>voc` ( -- a ) A chain connecting all defined vocabularies
+variable >voc  ' cdp 4 + >voc !
+
+\ `vocabulary` ( | <word> -- ) Creates a new vocabulary, when <word> is invoked,
+\   the current vocabulary will be set to this
+: vocabulary  create  >voc @  here >voc !  0 , current @ @ ,  ,  does>  vocs ! ;
+
+\ `hex` ( -- ) Switch numeric base for conversion to 16
+: hex  16 base ! ;
+
+\ `decimal` ( -- ) Switch numeric base for conversion to 10
+: decimal  10 base ! ;
+
+\ `+!` ( n a -- ) Increase value at address by n
+: +!  dup>r @ + r> ! ;
+
+\ `@+` ( a1 -- a2 x ) Fetch short from a1 and increase address by 2
+: @+  dup @ >r 2 + r> ;
+
+\ `!+` ( a1 x -- a2 ) Store short x at a1, increase the address by 2
+: !+  over ! 2 + ;
+
+\ `space` ( -- ) Write a space character using `emit`
+: space  bl emit ;
+
+\ `emits` ( c u -- ) Emit c u times
+: emits  begin  ?dup  while  over emit  1-  repeat  drop ;
+
+\ `spaces` ( u -- ) Emit u spaces
+: spaces  bl swap emits ;
+
+\ `erase` ( a u -- ) Fill an area of memory with zero bytes
+: erase  0 fill ;
+
+\ `blank` ( a u -- ) Fill an area of memory with space characters
+: blank  bl fill ;
+
+\ `0<>` ( n -- f ) Compare value with 0, push -1 if non-null or 0 otherwise
+: 0<>  if  -1  else  0  then ;
+
+\ `bounds` ( a1 n -- a2 a1 ) Take address and length and convert to end and start"
+\   addresses (the latter is directly above the last byte)
+: bounds  over + swap ;
+
+\ `?exit` ( f -- ) Exit colon word when f is true
+: ?exit  if r>drop  then ;
+
+\ `.(` ( | ... ) ) Read string from the input stream terminated by ")" and print
+\   it, this is a variant of `."` for use outside of colon definitions
+: .(  [char] ) parse type ;
+
+\ `-trailing`  ( a u1 -- a u2 ) Shorten a string (address + length) by deducing the
+\   trailing space characters from the length
+: -trailing  begin  1- dup 0<  if  1+  |  2dup + c@  bl <>  until  1+ ;
+
+\ `clamp` (n min max -- n2 ) Ensure n is between min and max
+: clamp  rot min max ;
+
+\ `2@` ( a - x y ) Read 2 shorts at address, the higher short first
+: 2@  dup cell+ @ swap @ ;
+
+\ `2!` ( x y a -- ) Write 2 shorts to address, the topmost item is placed first
+: 2!  swap over ! cell+ ! ;
+
+\ `:noname` ( | ... -- xt ) Compile the rest of the input stream and push an execution
+\   token that can be used to invoke it
+: :noname  also compiler  here (compile) ;
+
+\ `aligned` ( u1 -- u2 ) align to 2 boundary
+: aligned  dup 1 and  if  1+  then ;
+
+\ `align` ( -- ) Align the current free memory pointer (`h`)
+: align  here aligned h ! ;
+
+\ `diff` ( n1 n2 -- n3 ) "Reverse" subtraction
+: diff  swap - ;
+
+\ `2variable` ( | <word> -- ) Define a variable pointing to a double word
+: 2variable  create 0 , 0 , ;
+
+\ `2constant` ( x y | <word> -- ) Define a constant that pushes a double word when
+\   called
+: 2constant  head ['] (2constant) compile, swap , , ;
+
+\ Numeric formatting: a simple way of formatting numeric data, intermixed
+\ with text. After starting the formatting with `<#`, consecutive characters and digits
+\ are stored in the `pad` from back to front until `#>` is executed, which leaves 
+\ the address and length of the formatted string on the stack.
+
+\ `>num` ( -- a ) Variable holding the pointer to the end of the formatted string
 variable >num
+
+\ `<#` ( -- ) Start formatting
 : <#  pad >num ! ;
+
+\ `#` ( u1 -- u2 ) Take the last digit of u1 (in the numeric base designed by `base`) 
+\   and store it in the "hold" area
 : #  base @ u/mod swap dup 9 u>  if  
   [char] a + 10 -  else  [char] 0 +  then  >num @ 1- dup >num ! c! ;
+
+\ `#s` ( u -- 0 ) Store consecutive digits in the "hold" area using `#` until n is 0
 : #s  begin  # dup  while  repeat ;
-: #>  ( u1 -- a n ) drop >num @ dup pad swap - ;
-: hold  ( c -- ) >num @ 1- dup>r c! r> >num ! ;
-: holds  ( a u -- ) dup>r  negate >num +!  >num @ r> cmove ;
+
+\ `#>` ( x -- a n ) Drop x and push the contents of the "hold" area
+: #>  drop >num @ dup pad swap - ;
+
+\ `hold` ( c -- ) Add single character to "hold" area, at the front
+: hold  >num @ 1- dup>r c! r> >num ! ;
+
+\ `holds` ( a u -- ) Move the string given by a/u to the front in the "hold" area
+: holds  dup>r  negate >num +!  >num @ r> cmove ;
+
+\ `sign` ( n -- ) "Holds" a "-" character if n is negative
 : sign  ( n -- ) 0<  if  [char] - hold  then ;
-: (u.)  ( u1 -- a u2 ) <# #s #> ;
-: u.  ( u -- ) (u.) type space ;
-: (.)  ( n1 -- a n2 ) dup abs <# #s swap sign #> ;
-: .  ( n -- ) (.) type space ;
+
+\ `(u.)` ( u1 -- a u2 ) Converts the unsigned number u1 to a string in the `pad`
+\   and pushes its address and length
+: (u.)  <# #s #> ;
+
+\ `u.`  ( u -- ) Converts u to a string and prints it using `type`
+: u.  (u.) type space ;
+
+\ `(.)`  ( n -- a u ) Converts the signed number n to a string in the `pad` and
+\   pushes its address and length
+: (.)  dup abs <# #s swap sign #> ;
+
+\ `.`  ( n -- ) Converts n to a string and prints it using `type`
+: .  (.) type space ;
+
+\ `h.`  ( u -- ) Prints u in hexadecimal base using `type`
 : h.  base @ >r  hex  u.  r> base ! ;
-: u.r  ( n1 n2 -- ) >r <# #s #> r> over - 0 max spaces type ;
+
+\ `u.r`  ( u1 u2 -- ) Converts u1 to a string and prints it using `type`, padded
+\   on the left with spaces up to a total length of u2
+: u.r  >r <# #s #> r> over - 0 max spaces type ;
+
+\ `.r`  ( n u -- ) Converts n to a string and prints it using `type`, padded
+\   on the left with spaces up to a total length of u
 : .r  >r dup abs <# #s swap sign #> r> over - 0 max spaces type ;
+
+\ `.s`  ( ... -- ... ) Prints all elements in the data stack in reverse order using `.`
 : .s  depth ?dup 0=  if  ." stack empty "  |  
   dup 0  do  dup i - pick .  loop  drop ;
 
-\ string search
+\ `search`  ( a1 u1 a2 u2 -- a3 u3 f ) Search the string a2/u2 in the string a1/u1
+\    and push the address and length of location where it was found and a flag
+\    indicating success or failure
 variable /search
-: search  ( a1 u1 a2 u2 -- a3 u3 f )
+: search
   /search !  swap dup>r /search @ - 1+  0  do
     over i + over /search @ swap /search @ compare 0=  if
       drop i +  i  unloop  r> swap -  true  |  loop  drop  r>  false ;
-: scan  ( a1 n1 c -- a2 n2 )
+
+\ `scan`  ( a1 u1 c -- a2 u2 ) Search for byte c in the string a1/u1 and push
+\   the address and remaining length of the location where it was found
+: scan
   >r  begin  dup  while  over c@ r@ =  if  r>drop  |
     1 /string  repeat  r>drop ;
 
+\ Some more compiler words
 also compiler definitions
+
+\ `is`  ( xt | <word> -- ) See `is` above, this compiles inline code
 : is  ' literal  ['] defer! compile, ; immediate
+
+\ `recurse`  ( -- ) compile a recursive call to the currently defined colon definition
+\   (as the current definition is "smudged" and not visible during compilation)
 : recurse  current @ @ count + 2 + compile, ; immediate
 
+\ Save the basic UF ROM file "uf.rom", containing only the absolute minimum
+\ for a working, non-graphical Forth system
 only definitions
+
+\ enable prompt when ROM is loaded
 ' (prompt) is prompt
-.( saving uf0.rom ... ) cr
-save uf0.rom
+.( saving uf.rom ... ) cr
+save uf.rom
+
+\ disable prompt again during further loading of this file
 ' noop is prompt
 
+\ Some handy things
+
+\ `?`  ( a -- ) Print contents of address a using `.`
 : ?  @ . ;
+
+\ `based`  ( u1 u2 | <word> -- n ) Convert next word in input stream to a number using
+\   the base u2 and push it on the stack, reset `base` afterwards to u1
 : based  base !  bl word number r> r> base ! >r ?exit
   count type  ."  bad number"  cr  abort ;
+
+\ `h#`  ( | <word> -- n ) Convert next word in input stream as hex number and push
+\   it on the stack
 : h#  base @ >r 16 based ;
+
+\ `d#`  ( | <word> -- n ) Convert next word in input stream as decimal number and push
+\   it on the stack
 : d#  base @ >r 10 based ;
+
+\ `h#` and `d#` for compile time use inside colon definitions
 also compiler definitions
 : h#  h# literal ; immediate
 : d#  d# literal ; immediate
 only definitions
+
+\ `heaptop`  ( -- a ) Holds topmost address of usable heap, minus block buffers
 h# ec40 constant heaptop
 : unused  heaptop here - ;
 
-\ include
+\ Loading of source code
+\ `include` ( | <filename> -- )
+\ `included` ( a u -- ) 
+\ Both of these words redirect the input stream to the contents of the file with 
+\ the name given either as address/length pair or directly following the `include` form. 
+\ As available memory is constrained, the length of the source code may not exceed
+\ half of the remaining space between `h` and `heaptop`. If you want to load longer
+\ files (like this one), you can simple pass it as standard input when invoking
+\ "uxncli" or "uxnemu":
+\
+\    uxncli ufc.rom < FILENAME
+\
 variable >include   variable incend  
 variable oldquery   variable oldabort
 : endinclude  oldquery @  ['] query  defer!  ['] (prompt) is prompt
@@ -543,62 +757,155 @@ variable oldquery   variable oldabort
   oldabort !  ['] abortinc is abort ;
 : include  ( | <name> -- ) bl word count included ;
 
-\ varvara interface
-variable devaudio  h# 30 devaudio !
-: year  192 dei2 ;
-: month  194 dei ;
-: day  195 dei ;
-: hour  196 dei ;
-: minute  197 dei ;
-: second  198 dei ;
-: dotw  199 dei ;
-: doty  200 dei2 ;
-: isdst  202 dei ;
-: colors  12 deo2  10 deo2  8 deo2 ;
+\ "Varvara" device interface
+
+\ System device:
+
+\ `evector`  ( xt -- ) Set "catch" vector, used by UF to catch machine errors
+\   Note that the vector can be an arbitrary Forth execution token
 : evector  0 deo2 ;
-: svector  32 deo2 ;
-: screensize@  34 dei2  36 dei2 ;
-: screensize!  swap 34 deo2  36 deo2 ;
-: position  42 deo2  40 deo2 ;
-: pixel  46 deo ;
-: auto  38 deo ;
-: spritedata  44 deo2 ;
-: sprite  47 deo ;
-: audio  ( u -- ) 4 lshift h# 30 + devaudio ! ;
-: sample  ( a u -- ) devaudio @ 10 + dup>r deo2 r> 2 + deo2 ;
-: play  ( u -- ) devaudio @ 15 + deo ;
-: adsr  ( u -- ) devaudio @ 8 + deo2 ;
-: volume  ( u -- ) devaudio @ 14 + deo ;
-: output  ( -- u) devaudio @ 4 + dei ;
-: cvector  ( xt -- ) 16 deo2 ;
-: jbutton  ( -- b ) 130 dei ;
-: jkey  ( -- k ) 131 dei ;
-: jvector  ( xt -- ) 128 deo2 ;
-: mouse  146 dei2  148 dei2 ;
-: mscroll  ( -- x y ) 154 dei2  156 dei2 ;
-: mstate  150 dei ;
-: mvector  ( xt -- ) 144 deo2 ;
+
+\ Default handler for the "catch" vector, set during boot time
 : catcher  ( inst/code -- )
   255 and
   1 ->  ." stack underflow"  cr  abort |
   2 ->  ." stack overflow"  cr  abort |
   3 ->  ." division by zero"  cr  abort |
   ." unknown machine error"  cr  abort ;
+
+\ `colors`  ( r g b -- ) Set red/green/blue shorts
+: colors  12 deo2  10 deo2  8 deo2 ;
+
+\ `halt`  ( status -- ) Exit UXN VM with status code
+: halt  h# 80 or 15 deo  brk ;
+
+\ Console device:
+
+\ `cvector`  ( xt -- ) Set console vector, used in the editor to handle
+\   additional console input
+: cvector  16 deo2 ;
+
+\ `input-type`  ( -- u ) Return input "type" byte from console 
+: input-type  ( -- u ) h# 17 dei ;
+
+\ Screen device:
+
+\ `svector`  ( xt -- ) Set screen vector
+: svector  32 deo2 ;
+
+\ `screensize@`  ( -- u1 u2 ) Retrieve the screen size in pixels with the width
+\   in u1 and the height in u2
+: screensize@  34 dei2  36 dei2 ;
+
+\ `screensize!`  ( u1 u2 -- ) Sets the screensize to width u1 and height u2
+: screensize!  swap 34 deo2  36 deo2 ;
+
+\ `position`  ( u1 u2 -- ) Sets the x and y position slots in the screen device
+\   to u1 and u2, respectively
+: position  42 deo2  40 deo2 ;
+
+\ `pixel`  ( u -- ) Sets the pixel mode
+: pixel  46 deo ;
+
+\ `auto`  ( u -- ) Sets the "auto" byte
+: auto  38 deo ;
+
+\ `spritedata`  ( a -- ) Sets the Screen/addr slot
+: spritedata  44 deo2 ;
+
+\ `sprite`  ( u -- ) Sets the Screen/sprite slot
+: sprite  47 deo ;
+
+\ Audio device:
+
+\ `devaudio` ( -- a ) Variable holding the currently selected audio device
+variable devaudio  h# 30 devaudio !
+
+\ `audio`  ( u -- ) Sets the current audio device, all further device access
+\   operates on the selected one
+: audio  4 lshift h# 30 + devaudio ! ;
+
+\ `sample`  ( a u -- ) Sets the sample address
+: sample  devaudio @ 10 + dup>r deo2 r> 2 + deo2 ;
+
+\ `play`  ( u -- ) Sets the Audio/pitch slot
+: play  devaudio @ 15 + deo ;
+
+\ `adsr`  ( u -- ) Sets the Audio/adsr slot
+: adsr  devaudio @ 8 + deo2 ;
+
+\ `volume`  ( u -- ) Sets the Audio/volume slot
+: volume  devaudio @ 14 + deo ;
+
+\ `output`  ( -- u ) Reads the current Audio/output slot
+: output  devaudio @ 4 + dei ;
+
+\ Controller device:
+
+\ `jvector`  ( xt -- ) Sets the controller vector
+: jvector  128 deo2 ;
+
+\ `jbutton`  ( -- u ) Reads out the Controller/button slot
+: jbutton  130 dei ;
+
+\ `jkey`  ( -- u ) Reads out the Controller/key slot
+: jkey  131 dei ;
+
+\ Mouse device
+
+\ `mvector`  ( xt -- ) Sets the mouse vector
+: mvector  144 deo2 ;
+
+\ `mouse`  ( -- u1 u2 ) Reads out the mouse x and y position as u1 and u2, respectively
+: mouse  146 dei2  148 dei2 ;
+
+\ `mscroll`  ( -- u1 u2 ) Reads out the mouse x and y scroll values as u1 and u2, 
+\   respectively
+: mscroll  154 dei2  156 dei2 ;
+
+\ `mstate`  ( -- u ) Reads out the Mouse/state slot
+: mstate  150 dei ;
+
+\ Daytime device
+
+\ `year`, `month`, `day`, `hour`, `minute`, `second`, `dotw`, `doty` and `isdst`
+\   return the associated numeric value from the daytime device
+: year  192 dei2 ;      : month  194 dei ;      : day  195 dei ;
+: hour  196 dei ;       : minute  197 dei ;     : second  198 dei ;
+: dotw  199 dei ;       : doty  200 dei2 ;      : isdst  202 dei ;
+
+\ `pause`  ( -- ) Set Screen/vector and wait for events from other devices,
+\   during this time the word `tick` is called 60 times per second (or less),
+\   which should keep the stacks as they are on return 
 defer tick  ' noop is tick
 : waiting  tick  brk ;
 : pause  r>drop  ['] waiting svector  brk ;
-: halt  ( code -- ) h# 80 or 15 deo  brk ;
 
+\ Support for theme and snarf conventions:
+
+\ `apply-theme`  ( a -- ) Sets the System colors with the values found at the
+\   3 consecutive shorts at address a
+: apply-theme  @+ swap @+ swap @+ nip colors ;
+
+\ `theme`  ( -- ) Read the file ".theme" in the current directory into `pad`
+\   and apply the colors found there using `apply-theme`
+: theme  s" .theme" filename  pad 6 fileread  if  pad apply-theme  then ;
+
+\ `/snarfed`  ( -- a ) Variable holding number of previously snarfed bytes
 variable /snarfed
-: apply-theme  ( a -- ) @+ swap @+ swap @+ nip colors ;
-: theme  s" .theme" filename  pad 6 fileread  if
-    pad apply-theme  then ;
-: snarf  ( a u -- ) dup /snarfed !
-  s" .snarf" filename filewrite drop ;  
-: yank  ( -- a u ) s" .snarf" filename
-  pad  unused 4000 min  fileread  pad swap ;
 
-\ dump
+\ `snarf`  ( a u -- ) Write the u bytes at the address a to the file ".snarf"
+\   in the current directory, set `/snarfed`
+: snarf  dup /snarfed !  s" .snarf" filename filewrite drop ;
+
+\ `yank`  ( -- a u ) Load the data from the file ".snarf" in the current
+\   directory to `pad` (if the file exists) and returns address and length
+: yank  s" .snarf" filename pad  unused 4000 min  fileread  pad swap ;
+
+\ Hex dumps
+\
+\ `dump`  ( a u -- ) Writes a hex dump using `emit`, `.` and `type` from the
+\   data at the given address and with the given length
 : dumpascii  ( a u -- ) space
   0 do  count dup 33 128 within 0=  if  drop  [char] .  then
     emit  loop  drop ; 
@@ -612,16 +919,32 @@ variable /snarfed
     8 dumprow  dup 8 dumpascii  cr  8 +  loop
   r>  ?dup  if  dumprest then  drop  cr ;
 
+\ Tools to inspect the dictionary
+
+\ `order`  ( -- ) Write the items on the vocabulary stack, the vocabulary
+\   where definitions are created is shown in parantheses
 : order  4 0 do  
   vocs i th @ cell+ @ ?dup  if  count type  space  then  loop 
   current @ cell+ @ ?dup if  [char] ( emit  count type  ." ) "  then ;
+
+\ `.vocs`  ( -- ) Write out all existing vocabularies
 : .vocs  >voc @  begin  ?dup  while  cell+ @+ count type space  @  
   repeat ;
+
+\ `significant`  ( u1 -- u2 ) Rounds down the length in u1 to the number
+\   of significant characters in a dictionary entry
 : significant  ( u1 -- u2 ) h# 3f and ;
+
+\ `words`  ( -- ) Show all visible words in the order found in all vocabularies
+\   on the vocabulary stack
 : words  4 0  do  vocs i th @ @
     begin  ?dup  while
       count significant 2dup type space  + @  repeat
   loop ;
+
+\ `marker`  ( | <word> -- ) Creates a "marker", invoking this word restores
+\   all vocabularies and the vocabulary stack to the state that existed when
+\   the marker was created
 : marker-save
   >voc @ ,  current @ ,
   vocs  here  4 cells cmove  4 cells allot
@@ -636,7 +959,11 @@ variable /snarfed
 : marker  ( | <word> -- )
   create  marker-save  does>  marker-restore ;
 
-\ interpreter conditionals
+\ Interpreter conditionals
+\
+\ These words provide conditional execution/compilation and work both
+\ in interpreted and compiled code.
+
 : processword  ( n1 a n2 -- n3 )
   2dup s" [if]" compare 0=  if  2drop 1+ |
   2dup s" [else]" compare 0=  if  2drop dup 1 =  if  1-  then |
@@ -645,24 +972,79 @@ variable /snarfed
   1  begin  bl word dup c@  0=  if  drop  query
       else  count processword  then
     ?dup 0=  until ;
-: [if]  ( f | ... -- ) 0=  if  skipwords  then ; immediate
-: [else]  ( | ... -- ) skipwords ; immediate
-: [then] ; immediate
-: [defined]  ( | <word> -- f ) bl word find nip ; immediate
-: [undefined]  ( | <word> -- f ) bl word find 0= nip ; immediate
 
-\ structures
+\ `[if]`  ( f | ... -- ) Skip characters in input stream until the next
+\    `[else]` or `[then]`
+: [if]  0=  if  skipwords  then ; immediate
+
+\ `[else]`  ( | ... -- ) Skip characters in input stream until the next `[then]`
+: [else]  skipwords ; immediate
+
+\ `[then]`  ( -- ) End of conditional block
+: [then] ; immediate
+
+\ `[defined]`  ( | <word> -- f ) Pushes true or false on the stack, depending on
+\   wether the next word in the input stream is currently visible in the dictionary
+\   or not
+: [defined]  bl word find nip ; immediate
+
+\ `[undefined]`  ( | <word> -- f ) Pushes true or false on the stack, depending on
+\   wether the next word in the input stream is currently invisible in the dictionary
+\   or not
+: [undefined]  bl word find 0= nip ; immediate
+
+\ Structure definitions
+\
+\ Allows for defining slightly more convenient data structures:
+\
+\ begin-structure point
+\   field: x
+\   field: y
+\ end-structure
+\
+\ point p1
+\ 123 p1 x !  456 p1 y !  \ set x and y fields of structure p1
+
+\ `begin-structure`  ( | <word> -- a 0 ) Start structure definition, creates a wird
+\   that defines a dictionary entry that holds the address of a buffer for a structure
+\   of this type
 : begin-structure  \ -- addr 0 ; -- size 
    create  here 0 0 ,      \ mark stack, lay dummy 
    does> @ ;            \ -- rec-len 
+
+\ `end-structure`  ( a u -- ) End structure definition
 : end-structure  \ addr n -- 
    swap ! ;          \ set len
+
+\ `+field`  ( u | <word> -- ) Creates a structure field of u bytes and creates a
+\   dictionary entry that will accept a structure address and returns the address 
+\   of the field inside that structure
 : +field  \ n <"name"> -- ; exec: addr -- 'addr 
    create over , +  does> @ + ;
+
+\ `field:`  ( | <word> -- ) Creates an aligned 2 byte field
 : field:    ( n1 "name" -- n2 ; addr1 -- addr2 ) aligned 2 +field ;
+
+\ `cfield:`  ( | <word> -- ) Creates a single byte field
 : cfield:   ( n1 "name" -- n2 ; addr1 -- addr2 ) 1   +field ;
-                          
-\ assembler
+
+\ The assembler
+\
+\ This is an assembler for a Forthish variant of Uxntal allowing to
+\ define words coded in the native code of the UXN VM.
+\ All instructions are supported, the short, keeping and return 
+\ variants are indicated by the `"`, `k` and `r` markers.
+\ See `rnd` below for an example.
+\
+\ Note that assembly takes place in interpreted mode: calling
+\ normal Forth words will invoke them instantly, to compile a
+\ call to a Forth word inside a code definition, use "` <word>"
+\ or "' <word> #" JSR2".
+\
+\ Local numeric labels can be defined with `&` and referenced with `,`,
+\ at most 16 labels can be defined in a single code definition.
+\
+\ The assembler has its own vocabulary, active when using `code`
 vocabulary assembler
 only also assembler definitions
 : op  ( c | <inst> -- ) create  c,  does>  c@ c, ;
@@ -672,33 +1054,80 @@ only also assembler definitions
 15 op STH   16 op LDZ   17 op STZ   18 op LDR   19 op STR
 20 op LDA   21 op STA   22 op DEI   23 op DEO   24 op ADD
 25 op SUB   26 op MUL   27 op DIV   28 op AND   29 op ORA
-30 op EOR   31 op SFT   h# 80 op LIT
+30 op EOR   31 op SFT   32 op JCI   64 op JMI   96 op JSI
+h# 80 op LIT
 : fixup  ( u -- ) here 1- dup>r c@ or r> c! ;
+
+\ `"`  ( -- ) Modifies the previous instruction to a short version
 : "  h# 20 fixup ;
-: #"  ( u -- ) LIT " , ;      : #  ( c -- ) LIT c, ;
-: k  h# 80 fixup ;            : r  h# 40 fixup ;
+
+\ `#"`  ( x -- ) Compiles LIT2 xxxx
+: #"  LIT " , ;
+
+\ `#`  ( c -- ) Compiles LIT xx
+: #  ( c -- ) LIT c, ;
+
+\ `k`  ( -- ) Modifies the previous instruction to a "keep" version
+: k  h# 80 fixup ;
+
+\ `r`  ( -- ) Modifies the previous instruction to a "return" version
+: r  h# 40 fixup ;
+
+\ `$`  ( u -- ) Advances the code pointer by u bytes (an alias for `allot`)
 : $  ( u -- ) allot ;
+
+\ Label resolution
 16 cells buffer: lbls       variable fwdrefs
 : fwdref  ( u -- a ) fwdrefs @ swap 16 * th ;
 : patch  ( a -- ) here over - 2 - swap c! ;
 : resolve  ( u -- ) fwdref
   16  0  do  @+ ?dup  if  patch  then  loop  drop ;
-: &  ( u -- ) here over lbls swap th !  resolve ;
 : addref  ( u -- ) fwdref
   16  0  do  dup @ 0=  if  here 1- swap !  unloop  |  cell+  loop 
   true abort" too many forward references" ;
-: ,  ( u -- ) >r lbls r@ th @ ?dup  if  here 3 + - #  r>drop |
-  0 #  r> addref ;
+
+\ `&`  ( u -- ) Defines label with the index u, if referenced earlier,
+\   then jumps to this label are patched
+: &  here over lbls swap th !  resolve ;
+
+\ ```  ( | <word> -- ) Compile an immediate call (JSI) to a Forth word
+: `  JSI  ' here - , ;
+
+\ `,,`  ( x -- ) Compile a raw short (an alias for `,`, which has a different
+\    meaning in the assembler)
+: ,,  , ;
+
+\ `,`  ( u -- ) Compile a relative reference to label number u
+: ,  >r lbls r@ th @ ?dup  if  here 3 + - #  r>drop |  0 #  r> addref ;
+
 also forth definitions 
-: code  ( | <word> -- ) head  also assembler  
+\ These words are visible in the `forth` vocabulary:
+
+\ `code`  ( | <word> ... -- ) Start definition of a code word by pushing the
+\   `assembler` vocabulary on the vocabulary stack and creating a dictionary entry
+: code  ( | <word> -- ) head  also assembler
   lbls 16 cells erase  pad 256 + fwdrefs !
   fwdrefs @ 256 erase ;
+
+\ `end-code`  ( -- ) Ends a code definition (simply pops the `assembler` vocabulary
+\   from the vocabulary stack)
 : end-code  previous ;
+
 only forth
 
-\ decompiler
-vocabulary decompiler
-also decompiler definitions
+\ A Forth word decompiler
+\
+\ This tool can be used to look at code or colon definitions, it disassembles
+\ code in a particular word or at a given address. Since the end of words is
+\ not specially marked, some heuristics are used to detect the end of a
+\ definition: normally JSR2 (`exit`) is a got indicator, as is any other 
+\ unconditional direct brach, assuming no forward branches are still unresolved.
+\ For this reason the decompiler tries to keep track of forward branches.
+\ Forth is very flexible and allows many tricks and since this system compiles
+\ to native code, the described heuristics may fail in certain cases.
+
+\ `rfind` ( xt -- a -1 | xt 0) Handy word to find the name field of an execution
+\   token in the dictionary ("reverse find")
 : skipname  ( a1 -- a2 ) count significant + ;
 : (rfind)  ( xt dp -- a -1 | xt 0 )
   begin  ?dup 0=  if  false  |
@@ -709,6 +1138,9 @@ also decompiler definitions
   vocs dup 8 + swap  do
     i @ @ (rfind) dup  if  unloop  |  drop
   2 +loop  false ;
+
+vocabulary decompiler
+also decompiler definitions
 : decode-op  ( c -- )
   0  ->  ." BRK"  |  h# 1f and
   0  ->  ." LIT"  |  1  ->  ." INC"  |  2  ->  ." POP"  |
@@ -736,6 +1168,14 @@ also decompiler definitions
   ['] (slit)  ->  decode-bytes  |
   ['] (if)  ->  decode-jump  |  
   ['] (else)  -> decode-jump  |  drop ;
+: ijmprune  ( op -- ) 
+  32  ->  [char] ? emit  |  64  ->  [char] ! emit  |  drop ;
+: ijmpop  ( op -- ) 
+  32  ->  ." JCI"  |  64  ->  ." JMI"  |  drop ." JSI" ;
+: decode-ijmp  ( a1 op -- a2 )
+  >r @+ dup>r 2 - over + rfind  if  
+    r>drop r> ijmprune count significant type  |
+  r> r> ijmpop  h4. ;
 : decode-jsr  ( a1 xt -- a2 )
   over c@ h# 2e =  if
     ."  JSR2" 1 under+ decode-special  else  drop  then ;
@@ -745,13 +1185,19 @@ also decompiler definitions
 variable lit1
 : decode  ( a1 -- a2 ) count
   h# 80  ->  [char] # emit  count dup lit1 c!  h2. |
-  h# a0  ->  lit1 off  decode-litk2  |
+  32  ->  decode-ijmp  |  64  ->  decode-ijmp  |
+  96  ->  decode-ijmp  |  h# a0  ->  lit1 off  decode-litk2  |
   lit1 off  dup decode-op  decode-bits ;
+: chkijump  ( mark ... a1 -- mark ... [a2] a1 )
+  dup 1+ @ h# 8000 and ?exit  dup 1+ @ + 1- swap ; 
+: ijump?  ( c -- f ) 32 -> true | 64 -> true | 96 -> true | drop false ;
 : jump?  ( c -- f ) h# 1f and 12 15 within ;
 : chkjump  ( mark ... a1 -- mark ... [a2] a1 )
+  dup c@ ijump?  if  chkijump  |
   dup c@ jump? 0= ?exit  lit1 c@ h# 80 and ?exit
   lit1 c@ ?dup 0= ?exit  over 1+ + swap ;
-: end?  ( c -- ) 0  ->  true  |  h# 1f and h# 0c = ; 
+: end?  ( op -- ) 0  ->  true  |  64  ->  true  |
+  h# 1f and h# 0c = ; 
 : finished?  ( mark ... a c -- -1 | mark ... a 0 )
   end? 0=  if  false  |
   over 0=  if  2drop  true  else  false  then ;
@@ -760,22 +1206,33 @@ variable lit1
     2dup u> 0=  if  nip  else  exit  then
   again ;
 only forth definitions also decompiler
-: decompile  ( xt -- ) 0 swap ( marker )
+
+\ `decompile`  ( xt -- ) Decompiles the code at the given address
+: decompile  0 swap ( marker )
   lit1 off
   begin
     chkjump  dropfwds  dup
     decode  space  swap c@ finished? ?exit
   again ;
-: see  ( | <word> -- )
+
+\ `see`  ( | <word> -- ) Decompiles the definition of the next word in the input 
+\   stream
+: see  
   bl word find dup 0= abort" word not found"
   1 =  if  ." (immediate) "  then
   decompile ;
 only forth
 
-\ random numbers (taken from prng.tal)
+\ Random numbers (taken from prng.tal)
+
+\ `seed`  ( a -- ) Variable holding the current random state
 variable seed
+
+\ `randomize`  ( -- ) Initializes the random state to something
 : randomize  second seed ! ;
-code rnd  ( -- number* )
+
+\ `rnd`  ( -- n ) Returns a 16-bit pseudo random number
+code rnd
     \ returns the next number in a 65,535-long sequence,
     \ which is never zero but every other 16-bit number
     \ appears once before the sequence repeats )
@@ -788,24 +1245,44 @@ code rnd  ( -- number* )
     JMP " r
 end-code
 
+\ `new`  ( -- ) Marker resetting the dictionary to the base system + tools
 marker new
-.( saving ufx.rom ... ) cr
+
+\ Save the extended base system to "ufc.rom", which holds the base system and
+\ additional tools.
+
+.( saving ufc.rom ... ) cr
 ' (prompt) is prompt
+\ redefine `boot` to catch machine errors and enter interactive loop on the console
 : boot  ['] catcher evector  prompt  quit ;
-save ufx.rom
+save ufc.rom
 ' noop is prompt
 
+\ The graphical console and the block editor
+
+\ Basic I/O primitives - we save them here in `cin` and `cout` to ensure
+\ we have unchanged primitives directly accessing the console. `key` and `emit`
+\ will later be changed for the graphical console:
 defer cin   defer cout
 ' key defer@ is cin    ' emit defer@ is cout
 : ctype  ( a u -- ) 0  ?do  count cout  loop  drop ;
-defer edit  ( u -- )
+
+\ `edit`  ( u -- ) Start editing block u
+defer edit
+
+\ `stdin`  ( -- ) Hook that is invoked when non-graphical console input is available
 defer stdin
+
+\ `page`  ( -- ) Clear screen
 defer page
 
+\ The `editor` vocabulary holds most of the editor stuff to avoid polluting
+\ the visible namespace
 vocabulary editor
 also editor definitions
 
-\ font used for graphical interface
+\ Font used for graphical interface (BBC micro font, I believe, found somewhere
+\ in the uxn source tree)
 create font  hex
 00 c, 00 c, 00 c, 00 c, 00 c, 00 c, 00 c, 00 c, 
 18 c, 18 c, 18 c, 18 c, 18 c, 00 c, 18 c, 00 c, 
@@ -906,6 +1383,7 @@ ff c, ff c, ff c, ff c, ff c, ff c, ff c, ff c,
 
 decimal
 
+\ Variables holding editor state
 variable row    variable col
 variable rows   variable columns
 variable screen  variable loadbuf
@@ -914,10 +1392,13 @@ variable pointerx   variable pointery
 variable modified
 defer noedit  ( -- f )
 defer terminate
+
+\ Limits
 512 constant width      320 constant height
 4 constant tabwidth     1000 constant #shadow
 64 buffer: rtib       variable /rtib
 
+\ Words to compute various sizes and locations in the edited block
 : /screen  ( -- u ) screen @ negate ;
 : /block  ( -- u ) /screen columns @ - ;
 : point  ( -- r c ) row @ col @ ;
@@ -938,6 +1419,7 @@ defer terminate
 : marked?  ( row -- f ) mark @ dup  if
     1- row @  between  else  nip  then ;
 
+\ Colors and some basic display attributes
 variable textcolor
 \  theme: color #0 background, #1 text, #2 modeline, #3 highlight
 create default-theme  h# 0b75 , h# 0da6 , h# 0db8 ,
@@ -951,15 +1433,17 @@ create default-theme  h# 0b75 , h# 0da6 , h# 0db8 ,
   screen @ swap blank 
   pointerx off  pointery off ;
 : initcolors  default-theme apply-theme  normal ;
+
+\ Character drawing
 : glyph  ( c -- a ) dup 32 128 within 0=  if  drop  127  then
   bl - 3 lshift font + spritedata ;
-
 : drawchar  ( c -- ) glyph  textcolor @ sprite ;
 : drawrow  ( row -- ) dup  0 at  dup>r >row  1 auto
   r> marked?  if  reverse  else 
     dup c@ [char] \ =  if  highlite  then  then
   columns @  0  do  count drawchar  loop  drop  normal ;
 
+\ The input cursor
 30 constant blinks
 variable ccount  1 ccount !
 variable cursorcol  1 cursorcol !
@@ -971,11 +1455,13 @@ variable cursorcol  1 cursorcol !
   cursorcol @  if  0  else  1  then  dup cursorcol ! drawcursor ; 
 ' blink is tick
 
+\ The simulated mouse pointer
 : pointer  ( f -- ) pointerx @ 3 lshift pointery @ 3 lshift position  
   127 glyph  if  h# 03 sprite  |
   h# 00 sprite  1 cursor ;
 : home  0 cursor  row off  col off  mark off  1 cursor ;
 
+\ Screen drawing and scrolling
 : clrscr  bl glyph  1 auto
   rows @  0  do  
     i 0 at  columns @  0  do  h# 40 sprite  loop  
@@ -1026,6 +1512,7 @@ variable cursorcol  1 cursorcol !
     1 row +!  dup  if  1 /string  then
   again ;
 
+\ Textual operations on the characters in a block
 : split  row @ rows @ 3 - >= ?exit  0 cursor
   scrolldown  line >r  row @ 1+ >row r> cmove
   line blank  col off  1 row +!  modified on  redraw ;
@@ -1085,6 +1572,7 @@ variable dirty
 defer status
 : update  locked @  if  status  then ;
 
+\ Key handling
 defer ctrl-key  ( key -- key|0 )
 defer other-key  ( key -- )
 defer handle-button  ( key but -- key|0 )
@@ -1092,6 +1580,7 @@ defer handle-button  ( key but -- key|0 )
   jkey  jbutton handle-button  other-key  update  pause ;
 : no-events  0 jvector  0 mvector  0 cvector  0 svector ;
 
+\ Block I/O
 variable loading    variable block
 variable endload
 : >loadbuf  ( r c -- a ) swap columns @ * + loadbuf @ + ;
@@ -1116,6 +1605,7 @@ variable endload
   bottomrow  0  do  i 0 >loadbuf columns @ -trailing ctype  10 cout  
   loop ;
 
+\ Remembering the last input location
 create editpos 0 , 0 ,
 : savepos  editpos row @ !+ col @ swap ! ;
 : restorepos  editpos @+ row ! @ col ! ;
@@ -1126,7 +1616,7 @@ create editpos 0 , 0 ,
   mark off  line blank  bottomrow drawrow  1 cursor
   ['] (prompt) is prompt  true ;
 
-\ word below mouse position
+\ Fetch word below mouse position
 : mouse>loc  ( -- r c ) mouse 3 rshift  swap 3 rshift ;
 : scanleft  ( r c -- a )  0  ->  >row  |
   begin  
@@ -1147,6 +1637,7 @@ create editpos 0 , 0 ,
   1 /string pad place  pad number 0=  if  count  false  |
   true ;
 
+\ Mouse input handling
 : warp  0 cursor  mouse>loc col ! 
   locked @  if  rows @ 2 - min  then  
   row !  1 cursor  update ;
@@ -1165,6 +1656,7 @@ create editpos 0 , 0 ,
   mscroll nip ?dup  if  shiftblock  then
   1 pointer  clicked  pause ;
 
+\ Waiting for events
 : handlecin  ( c -- )
   0  ->  |  9  ->  tab  |
   10  ->  enter  no-events  r>drop  |  insert ;
@@ -1176,6 +1668,7 @@ create editpos 0 , 0 ,
     buf>screen  redraw  update  dirty off  then
   pause ;
 
+\ Block loading (evaluation)
 : load1  ( u -- ) ."  #" dup . 
   loadbuf @ over fileblock 0= abort" no such block"
   block ! ;
@@ -1203,7 +1696,7 @@ create editpos 0 , 0 ,
   locked @  if  save-block  noedit  drop  then
   screen>buf  evalblock ;
 
-\ search
+\ Search
 : addr>point  ( a -- ) screen @ - columns @ u/mod row ! col ! ;
 : findrange  ( -- u ) locked @  if  /block  else  /screen  then ;
 : find-from  ( a1 u -- a2 f )
@@ -1223,6 +1716,7 @@ variable seen   2variable wstr
     1 /string
   again ;
 
+\ Error handling and exit
 : error  ['] (prompt) is prompt  modified off
   locked @  if  noedit drop  then
   loading @  if ['] listen is query  loading off  endload off
@@ -1233,6 +1727,7 @@ variable seen   2variable wstr
       loadblock  enteredit  restorepos  then  |
   noedit  if  abort  then ;
 
+\ Status bar
 : drawstatus  reverse  bottomrow drawrow  normal ;
 : editstatus  bottomrow >row dup>r columns @ blank
   row @ 1+ (u.) r@ swap cmove
@@ -1244,7 +1739,7 @@ variable seen   2variable wstr
   modified @  if  127  else  bl  then  r> columns @ 1- + c!
   drawstatus ;
 
-\ input grab
+\ Input grab
 variable bdigits    variable >bdigits
 defer grabber  ( f -- )
 : grab-goto  ( f -- )
@@ -1273,7 +1768,7 @@ defer grabber  ( f -- )
   bdigits off  bottomrow 7 >screen >bdigits !
   grab-cursor  limbo ;
 
-\ key handlers
+\ Key handlers
 : (ctrl-key/locked)  ( key -- key|0 )
   [char] r  ->  ['] grab-copy  s" copy:"  grab  0  |
   [char] m  ->  ['] grab-move  s" move:"  grab  0  |
@@ -1314,48 +1809,74 @@ defer grabber  ( f -- )
     enter  no-events  update  r>drop  then  |  
   insert ;
 
+\ Set hooks
 ' exitedit is noedit  ' editstatus is status
 ' exitforth is terminate
 ' (ctrl-key) is ctrl-key
 ' (other-key) is other-key
 ' (handle-button) is handle-button
 
-\ external interface and helper words
+\ External interface and helper words
 only definitions also editor
 ' (stdin) is stdin
+
+\ `blk`  ( -- a ) Return address of currently edited block
 : blk  ( -- a ) block ;
+
+\ `(page)`  ( -- ) Default action for `page` which clears the screen
 : (page)  screen @ rows @ columns @ * blank  redraw  home ;
 ' (page) is page
+
+\ `at-xy`  ( x y -- ) Position cursor
 : at-xy  ( x y -- ) 0 cursor
   0 rows @ clamp row !  0 columns @ clamp col ! 
   1 cursor ;
+
+\ "Clickable" editor commands 
 : Save  save-block ;
 : Snarf  copy-marked ;
 : Paste  paste ;
 : Load  save-and-eval-block ;
-: load  ( u -- )  endload off  load1 evalblock  ;
-: thru  ( u1 u2 -- ) endload !  1- nextblock drop  evalblock ;
-: (edit)  ( u -- ) loadblock  enteredit ;
-' (edit) is edit
 : Next  next-block ;
 : Prev  previous-block ;
 : Abort  modified off  noedit  drop ;
 : Doc  block @ #shadow <  if  toggle-block  then ;
 : Code  block @ #shadow >=  if  toggle-block  then ;
+
+\ `load`  ( u -- ) Load and evaluate block u
+: load  ( u -- )  endload off  load1 evalblock  ;
+
+\ `thru`  ( u1 u2 -- ) Load and evaluate blocks u1 to u2 (inclusive)
+: thru  ( u1 u2 -- ) endload !  1- nextblock drop  evalblock ;
+
+\ `(edit)`  ( u -- ) Default behaviour of `edit`
+: (edit)  ( u -- ) loadblock  enteredit ;
+' (edit) is edit
+
+\ `export`  ( u1 u2 -- ) Load blocks u1 to u2 (inclusive) and write them to the
+\   textual console output channel
 : export  ( u1 u2 -- )
   1+ swap  ?do  
     loadbuf @ i fileblock 0= abort" no such block"
     writeblock
   loop ;
+
+\ `\s`  ( | ... -- ) Skip block - comments out rest of block
 : \s  >limit @ >in !
   loading @  if  bottomrow loading !  then ;
-: list  ( u -- ) load1 loadbuf @  rows @  1  do
+
+\ `list`  ( u -- ) List block u
+: list  load1 loadbuf @  rows @  1  do
     dup columns @ -trailing cr type  columns @ +  loop  drop ;
-: where  ( u1 u2 | <word> -- ) seen off
+
+\ `where`  ( u1 u2 | <word> -- ) Scan blocks u1 to u2 for the next word in the input
+\   Stream and list blocks containing occurrences and their respective lines
+: where  seen off
   bl word count wstr 2! 1+ swap  ?do
     i getblock  if  i (where)  then
   loop ;
 
+\ `banner`  ( -- ) Print UF banner
 defer banner
 : _banner  10 4 at-xy  ." UF/" version .
   ." - "  copyright type  cr  10 spaces
@@ -1364,14 +1885,20 @@ defer banner
   h# 76 auto  8 0  do  h# 41 sprite  loop  0 auto
   0 10 at-xy  prompt ;
 ' _banner is banner
+
+\ `boot`  ( -- ) Boot code for full environment, sets up graphics and event handlers
 : boot  ['] catcher evector  initscreen  initcolors  theme
   dirty off  locked off  modified off
   ['] error is abort  ['] listen is query  ['] gemit is emit
   home  banner  quit ;
 
 only
+\ Overwrite `new` to wipe everything from here
 marker new
-.( saving uf.rom ... )
+
+\ Save full graphical system as "ufx.rom"
+
+.( saving ufx.rom ... )
 ' (prompt) is prompt
-save uf.rom
+save ufx.rom
 bye

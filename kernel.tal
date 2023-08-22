@@ -9,14 +9,16 @@ in Forth.
 
 Memory is organized as follows:
 
-    0000         0100                         `h` `pad`        ffff
-    |            |                            |   |            |
-    v            v                            v   v            v
-    +------------+----------+-----------------+----------------+
-    | <zeropage> | <kernel> | <compiled code> | <unused space> |
-    +------------+----------+-----------------+----------------+
+    0000         0100                         `h` `pad`        ec40              ffff
+    |            |                            |   |            |                 |
+    v            v                            v   v            v                 v            
+    +------------+----------+-----------------+----------------+-----------------+
+    | <zeropage> | <kernel> | <compiled code> | <unused space> | <block buffers> |
+    +------------+----------+-----------------+----------------+-----------------+
 
-`h` increases as code is compiled and data allocated. )
+`h` increases as code is compiled and data allocated. The block buffers are used
+for the block editor defined in "uf.f", the space can be used freely if the editor
+is not used. )
 
 ( Constants used in banner )
 %VERSION { 0008 }

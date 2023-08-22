@@ -198,6 +198,7 @@ if          ( f -- )                Start conditional [C]
 immediate   ( -- )                  Make most recent definition immediate
 include     ( | <name> -- )         Include file designated by "<name>" [X*]
 included    ( a u -- )              Include file designated by given string [X*]
+input-type  ( -- u )                Return console input type [X]
 interpret   ( | ... -- )            Interpret code in `tib`
 invert      ( n1 -- n2 )            Perform binary NOT
 is          ( xt | <word> -- )      Set execution vector of deferred word
@@ -254,6 +255,7 @@ r>drop      ( -- )                  Drop topmost value on return stack
 r@          ( -- x )                Fetch topmost value from return stack
 randomize   ( -- )                  Set the random number seed to some value [X]
 recurse     ( -- )                  Invoke current definition
+rfind       ( xt -- a f )           Searches the dictionary entry for a particular execution token [X]
 repeat      ( -- )                  End of `begin ... while ... repeat` loop [C]
 reset       ( -- )                  Clear return stack
 rnd         ( -- n )                Returns a random number [X]
@@ -319,7 +321,7 @@ year        ( -- u )                Push current year [X]
 Notes:
 
 [C]     Only available at compile time
-[G]     Only available in the graphical interface ("uf.rom"), implies [X]
-[X]     Available in "ufx.rom" and "uf.rom"
+[G]     Only available in the graphical interface ("ufx.rom"), implies [X]
+[X]     Available in "ufx.rom" and "ufc.rom"
 [D]     Deferred word
 [*]     Check note in README
