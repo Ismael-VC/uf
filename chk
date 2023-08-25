@@ -1,3 +1,4 @@
 #!/usr/bin/rc
-ufx <examples/bounce.f
+uxncli uf.rom <examples/bitcount.f || exit 1
+uxncli uf.rom <examples/bounce.f
 uxnemu bounce.rom

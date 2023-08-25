@@ -81,7 +81,7 @@ meaning ("^" meaning the Control key, "Sh" the Shift key):
     ^u      Kill to beginning of line or marked region (and snarf)
     ^x      Copy line or marked region to ".snarf" file
     ^v, ^y  Paste contents of ".snarf" file
-    ^f      Find next occurrence f word below cursor
+    ^f      Find next occurrence of word below cursor
     ^s      Save changes in currently edited block
     ^l      Clear screen (unless in editor)
     ^g      Read digits and jump to indicated block on ENTER
@@ -186,6 +186,8 @@ words have a special meaning:
     ,           ( u -- )    reference previously defined label as relative
                             branch distance
     `    ( | <word> -- )    Compile immediate call of Forth word
+    !    ( | <word> -- )    Compile immediate jump to Forth word
+    ?    ( | <word> -- )    Compile immediate conditional jump to Forth word
 
 Currently only 16 labels can be defined. You can insert absolute
 references to other Forth words using the sequence `' <word> #"`

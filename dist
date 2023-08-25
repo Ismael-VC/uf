@@ -1,5 +1,5 @@
 #!/usr/bin/rc
-v = `{echo 'version . bye' | uxncli ufx.rom | tail -n1}
+v = `{echo 'version . bye' | uxncli uf.rom | tail -n1}
 dir = uf-^$v
 mkdir -p $dir/examples $dir/lib
 for(f in ``$ifs(3){cat MANIFEST}) {
