@@ -42,6 +42,8 @@ into the public domain. Do with it whatever you like.
 Release History:
 
 Version 8:
+    * All calls to Forth words use immediate branches now, which reduces
+      the code size of the prebuilt ROMs by several kilobytes.
     * Renamed ROMs to "uf0.rom" (minimal), "uf.rom" (tools) and "ufx.rom"
       (graphical console + editor).
     * Heavily commented both the uxntal kernel and the Forth source code.
@@ -51,9 +53,7 @@ Version 8:
       system device ports).
     * The kernel uses immediate branches were possible, which reduces
       the kernel size slightly.
-    * `wait` has been removed, `pause` now installs the `tick` handler
-      and waits for events.
-    * Exposed `rfind`.
+    * `pause` has been removed, `rfind` has been exposed.
     * Added `halt` and `input-type`.
 
 Version 7:
