@@ -4,4 +4,6 @@ kernel.tal
 lib/dmath.f
 lib/locals.f
 uf.f
+examples/bitcount.f
+examples/dumpsym.f
 examples/bounce.f
