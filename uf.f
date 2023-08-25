@@ -390,13 +390,13 @@ also compiler definitions
 : loop  1 literal  patchloop  ['] (loop) compile,  cjump, ; immediate
 
 \ `tailjump` ( -- ) Changes last compiled instruction from call to jump,
-\   changing JSR[2] to JMP[2]; if the previous instruction is different from a jump
+\   changing JSR[2] to JMP[2]; if the previous instruction is not a call then
 \   compile a JMP2r (normal return)
 : tailjump  here 1- dup c@  46  ->  44 swap c!  |  
   14  ->  12 swap c!  |  drop  108 c, ;
 
-\ `-;` ( -- ) Fixes last call to tailcall, if 
-: -;  current @ @ here <>  if  tailjump  else  108 c,  then  \ XXX why this check?
+\ `-;` ( -- ) Fixes last call to tailcall unless the definition is empty
+: -;  current @ @ here <>  if  tailjump  else  108 c,  then
   state off  reveal ; immediate
 
 \ back to `forth` vocabulary
@@ -513,7 +513,7 @@ defer bye
 \ vocabulary stack, the latest (topmost) is searched first.
 
 \ `>voc` ( -- a ) A chain connecting all defined vocabularies
-variable >voc  ' cdp 4 + >voc !
+variable >voc  ' cdp 3 + >voc !
 
 \ `vocabulary` ( | <word> -- ) Creates a new vocabulary, when <word> is invoked,
 \   the current vocabulary will be set to this
@@ -552,7 +552,7 @@ variable >voc  ' cdp 4 + >voc !
 \ `0<>` ( n -- f ) Compare value with 0, push -1 if non-null or 0 otherwise
 : 0<>  if  -1  else  0  then ;
 
-\ `bounds` ( a1 n -- a2 a1 ) Take address and length and convert to end and start"
+\ `bounds` ( a1 n -- a2 a1 ) Take address and length and convert to end and start
 \   addresses (the latter is directly above the last byte)
 : bounds  over + swap ;
 
@@ -681,14 +681,14 @@ also compiler definitions
 \   (as the current definition is "smudged" and not visible during compilation)
 : recurse  current @ @ count + 2 + compile, ; immediate
 
-\ Save the basic UF ROM file "uf.rom", containing only the absolute minimum
+\ Save the basic UF ROM file "uf0.rom", containing only the absolute minimum
 \ for a working, non-graphical Forth system
 only definitions
 
 \ enable prompt when ROM is loaded
 ' (prompt) is prompt
-.( saving uf.rom ... ) cr
-save uf.rom
+.( saving uf0.rom ... ) cr
+save uf0.rom
 
 \ disable prompt again during further loading of this file
 ' noop is prompt
@@ -880,6 +880,8 @@ variable devaudio  h# 30 devaudio !
 defer tick  ' noop is tick
 : waiting  tick  brk ;
 : pause  r>drop  ['] waiting svector  brk ;
+\ `wait` is now named `pause`, add this for backwards compatibility:
+: wait pause ;
 
 \ Support for theme and snarf conventions:
 
@@ -1154,7 +1156,7 @@ also decompiler definitions
   24  ->  ." ADD"  |  25  ->  ." SUB"  |  26  ->  ." MUL"  |
   27  ->  ." DIV"  |  28  ->  ." AND"  |  29  ->  ." ORA"  |
   30  ->  ." EOR"  |  drop  ." SFT" ;
-: decode-bits  ( c -- )
+: decode-bits  ( op -- )
   dup h# 20 and  if  [char] 2 emit  then
   dup h# 80 and  if  [char] k emit  then
   h# 40 and  if  [char] r  emit  then ;
@@ -1172,10 +1174,13 @@ also decompiler definitions
   32  ->  [char] ? emit  |  64  ->  [char] ! emit  |  drop ;
 : ijmpop  ( op -- ) 
   32  ->  ." JCI"  |  64  ->  ." JMI"  |  drop ." JSI" ;
-: decode-ijmp  ( a1 op -- a2 )
-  >r @+ dup>r 2 - over + rfind  if  
-    r>drop r> ijmprune count significant type  |
-  r> r> ijmpop  h4. ;
+\ I don't understand this at all: why this special case? it should be
+\ simply addr + value + 2, or not?
+: rel16  ( a1 -- a2 ) dup @ dup h# 8000 and if  1-  then  + 2 + ;
+: decode-ijmp  ( a1 -- a2 ) dup 1- c@ >r
+  dup rel16 rfind  if  
+    r> ijmprune count significant type  2 + |
+  r> ijmpop  space  over @ h4.  ."  ( " h4. ."  ) " 2 + ;
 : decode-jsr  ( a1 xt -- a2 )
   over c@ h# 2e =  if
     ."  JSR2" 1 under+ decode-special  else  drop  then ;
@@ -1184,24 +1189,24 @@ also decompiler definitions
     r> decode-jsr  |  [char] # emit  h4.  r>drop ;
 variable lit1
 : decode  ( a1 -- a2 ) count
-  h# 80  ->  [char] # emit  count dup lit1 c!  h2. |
+  h# 80  ->  [char] # emit  count dup lit1 c!  h2. |  lit1 off
   32  ->  decode-ijmp  |  64  ->  decode-ijmp  |
-  96  ->  decode-ijmp  |  h# a0  ->  lit1 off  decode-litk2  |
-  lit1 off  dup decode-op  decode-bits ;
-: chkijump  ( mark ... a1 -- mark ... [a2] a1 )
-  dup 1+ @ h# 8000 and ?exit  dup 1+ @ + 1- swap ; 
-: ijump?  ( c -- f ) 32 -> true | 64 -> true | 96 -> true | drop false ;
+  96  ->  decode-ijmp  |  h# a0  ->  decode-litk2  |
+  dup decode-op  decode-bits ;
+: chkijump  ( 0 ... a1 -- 0 ... [a2] a1 )
+  dup 1+ @ h# 8000 and ?exit  dup 1+ @ over + 2 + swap ; 
+: ijump?  ( c -- f ) 32 -> true | 64 -> true | drop false ;
 : jump?  ( c -- f ) h# 1f and 12 15 within ;
-: chkjump  ( mark ... a1 -- mark ... [a2] a1 )
+: chkjump  ( 0 ... a1 -- 0 ... [a2] a1 )
   dup c@ ijump?  if  chkijump  |
   dup c@ jump? 0= ?exit  lit1 c@ h# 80 and ?exit
   lit1 c@ ?dup 0= ?exit  over 1+ + swap ;
-: end?  ( op -- ) 0  ->  true  |  64  ->  true  |
+: end?  ( op -- f ) 0  ->  true  |  64  ->  true  |
   h# 1f and h# 0c = ; 
-: finished?  ( mark ... a c -- -1 | mark ... a 0 )
+: finished?  ( 0 ... a op -- -1 | 0 ... a 0 )
   end? 0=  if  false  |
   over 0=  if  2drop  true  else  false  then ;
-: dropfwds  ( mark ... a -- mark ... a )
+: dropfwds  ( 0 ... a -- 0 ... a )
   begin  over 0= ?exit
     2dup u> 0=  if  nip  else  exit  then
   again ;
@@ -1209,8 +1214,7 @@ only forth definitions also decompiler
 
 \ `decompile`  ( xt -- ) Decompiles the code at the given address
 : decompile  0 swap ( marker )
-  lit1 off
-  begin
+  lit1 off  begin
     chkjump  dropfwds  dup
     decode  space  swap c@ finished? ?exit
   again ;
@@ -1248,18 +1252,91 @@ end-code
 \ `new`  ( -- ) Marker resetting the dictionary to the base system + tools
 marker new
 
-\ Save the extended base system to "ufc.rom", which holds the base system and
+\ Save the extended base system to "uf.rom", which holds the base system and
 \ additional tools.
 
-.( saving ufc.rom ... ) cr
+.( saving uf.rom ... ) cr
 ' (prompt) is prompt
 \ redefine `boot` to catch machine errors and enter interactive loop on the console
 : boot  ['] catcher evector  prompt  quit ;
-save ufc.rom
+save uf.rom
 ' noop is prompt
 
-\ The graphical console and the block editor
+\ The graphical console
+\
+\ The full UF system provides a graphical console that has the same functionality
+\ as the terminal console, you can enter text, press ENTER to execute it and move
+\ the cursor by using the cursor keys or left-blicking with the mouse at a 
+\ particular position. The content scrolls upwards as text lines are entered, 
+\ pressing ENTER on any line sends the line to the Forth interpreter.
+\ Right-clicking a space-delimited word is equivalent to entering it, followed
+\ by ENTER, i.e. the word is executed.
+\ 
+\ A number of control- and shift-key combinations are available on the console:
+\ ("^" meaning the Control key, "Sh" the Shift key):
+\
+\   ^a      Jump to beginning of line
+\   ^e      Jump to end of line
+\   ^c      Terminate Forth
+\   ^d      Delete next char
+\   ^k      Kill to end of line or marked region (and write to ".snarf" file)
+\   ^u      Kill to beginning of line or marked region (and snarf)
+\   ^x      Copy line or marked region to ".snarf" file
+\   ^v, ^y  Paste contents of ".snarf" file
+\   ^f      Find next occurrence f word below cursor
+\   ^l      Clear screen
+\   ^ENTER  Toggle region mark on/off
+\   Sh-Up   Recall the last entered line
+\
+\ Note that the terminal console is still functional in the graphical environment,
+\ entering text (or redirecting standard input) is fully equivalent to entering
+\ it in the graphical console.
+\
+\ The block editor
+\
+\ The system also provides a "block" editor for screen-sized bodies of code.
+\ Blocks are stored in the file system in the current directory with the name
+\ being equal to the block number, an arbitrary integer. A block contains 2496 
+\ bytes (39 lines with 64 columns).
+\
+\ Entering the editor takes place by using the `edit` word, giving it the 
+\ number of the block to open. You can also edit a block by clicking with the
+\ right mouse button on a string of the form "#nnnn" where "nnnn" is a decimal 
+\ integer.
+\
+\ Additional or changed control- and shift-key combinations in the editor:
+\
+\   ^s      Save changes in currently edited block
+\   ^g      Read digits and jump to indicated block on ENTER (abort on ESC)
+\   ^r      Read digits and copy current block to new one on ENTER
+\   ^m      Read digits and move current block to new one on ENTER
+\           (and delete the old block)
+\
+\   Sh-Down         Jump to next block
+\   Sh-Left/Right   Jump between code and documentation ("shadow") block
+\   Sh-Up           Jump to previous block
+\
+\ Moving the scroll wheel will jump to the previous or next block, when 
+\ currently editing an unmodified block.
+\ The ESC key will exit or enter editing (unless the current block is modified). 
+\ The bottom row contains counters indicating current row, column, block number, 
+\ the length of the most recently copied text, the amount of dictionary space 
+\ left and a marker indicating whether the current block is modified. Blocks 
+\ can be loaded using `load` and `thru`. Note that block-loading is done by temporarily
+\ changing the word for reading user-input (`query`) and takes effect when the 
+\ current input line has been fully processed. That implies that loading words can 
+\ not be invoked recursively.
+\
+\ Notable conventions used in the editor:
+\ 
+\ * Blocks 1000- are used as "shadow" blocks, providing documentation, so
+\   block #1001 would contain documentation for block #1.
+\
+\ * The topmost line of a newly created empty block is used to name the block and 
+\   contains a "menu" in the form of right-clickable editor commands
 
+\ Console and editor code
+\
 \ Basic I/O primitives - we save them here in `cin` and `cout` to ensure
 \ we have unchanged primitives directly accessing the console. `key` and `emit`
 \ will later be changed for the graphical console:
