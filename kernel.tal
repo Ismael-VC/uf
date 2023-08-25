@@ -534,16 +534,12 @@ f0 c0 80 00 00 00 00 00
     DUP2 ;h LDA2 INC2 INC2 INC2 SUB2 #ff80 LTH2k ?cjumpaddr/long
     POP2 LITk LITk SWP  comma  POP POP2 #0000 JMP2r
 &long
-    POP2 POP2 LITk LIT2k  ccomma1  comma  #0001 JMP2r
+    POP2 POP2 LITk LIT2k ccomma1  comma  #0001 JMP2r
 
-( `compile,` - Compiles an execution token (code address) into a LIT #xx JSR or
-  LIT2 #xxxx JSR2 sequence )
+( `compile,` - Compiles an execution token (code address) into a immediate call (JSI) )
 ( xt -- )
-@h45 08 "compile, :h44a @compilecomma 
-    cjumpaddr NIP ?compilecomma/long
-    LITk JSR  !ccomma1
-&long
-    LITk JSR2  !ccomma1 
+@h45 08 "compile, :h44a @compilecomma
+    #60 ccomma1  ;h LDA2 SUB2 #0002 SUB2 !comma
 
 ( `,` - Compiles an arbitrary word into the address of the currently available space
   and advances `h` )

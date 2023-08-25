@@ -358,13 +358,14 @@ also compiler definitions
   immediate
 
 \ `(does>)` ( -- ) Change the code field of the most recently created word to
-\   Jump to the code following this word
-: (does>)  r>  current @ @ count 63 and + 3 + ! ;
+\   Jump to the code following this word; this requires that the code field
+\   starts with a JSI sequence
+: (does>)  r>  current @ @ count 63 and + 2 +  1+  tuck - 2 - swap ! ;
 
 \ `does>` ( | ... -- a ) Compiles a call to `(does>)` followed by STH2r, effectively
 \   changing the previously defined word to execute the following code, with the 
-\   parameter field address pushed on the stack (of the data following the branch the 
-\   current location)
+\   parameter field address pushed on the stack (of the data following the branch to 
+\   the current location)
 : does>  ['] (does>) compile,  111 c, ; immediate
 
 \ `do` ( u1 u2 | ... loop -- ) Start a DO ... LOOP construct, pushing the start and
@@ -389,13 +390,10 @@ also compiler definitions
 \ `loop` ( -- ) Like `+loop`, increasing the loop index by 1
 : loop  1 literal  patchloop  ['] (loop) compile,  cjump, ; immediate
 
-\ `tailjump` ( -- ) Changes last compiled instruction from call to jump,
-\   changing JSR[2] to JMP[2]; if the previous instruction is not a call then
+\ `-;` ( -- ) Changes last compiled instruction from call to jump,
+\   changing JSI to JMI; if the previous instruction is not a call then
 \   compile a JMP2r (normal return)
-: tailjump  here 1- dup c@  46  ->  44 swap c!  |  
-  14  ->  12 swap c!  |  drop  108 c, ;
-
-\ `-;` ( -- ) Fixes last call to tailcall unless the definition is empty
+: tailjump  here 3 - dup c@  96 =  if  64 swap c!  |  drop  108 c, ;
 : -;  current @ @ here <>  if  tailjump  else  108 c,  then
   state off  reveal ; immediate
 
@@ -478,15 +476,19 @@ only definitions
 : crash  ." uninitialized execution vector" cr  abort ;
 
 \ `defer` ( | <word> -- ) Define a "deferred" word, which can be changed later,
-\   the initial behaviour is to call `crash`
+\   the initial behaviour is to call `crash` via a ";crash JSR2" sequence,
+\   that way we can easily change the (absolute) target address
 : defer  head ['] crash literal  44 c, ;
 
 \ `defer!` ( xt1 xt2 -- ) Change the deferred word xt2 to call xt1
-: defer!  1+ ! ;
+\   we add a check for LIT2, otherwise accessing non-deferred words this way
+\   will be very hard to debug
+: ?defer  ( xt -- a ) count 160 <> abort" not a deferred word" ;
+: defer!  ?defer ! ;
 
 \ `defer@` ( xt1 -- xt2 ) Fetch the execution token that is called when the 
 \   deferred word xt1 is invoked
-: defer@  1+ @ ;
+: defer@  ?defer @ ;
 
 \ `is` ( xt | <word> -- ) Change the deferred word given in the input stream to
 \   call xt when invoked
