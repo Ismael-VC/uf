@@ -1,6 +1,6 @@
 ( UF
 
-  A 16 bit direct threaded Forth implementation for the "UXN" virtual machine
+  A 16 bit Forth implementation for the "UXN" virtual machine
   https://wiki.xxiivv.com/site/uxn.html. 
 
 The system is written in uxntal and Forth. This file contains the "kernel" part,
@@ -536,8 +536,8 @@ f0 c0 80 00 00 00 00 00
 &long
     POP2 POP2 LITk LIT2k  ccomma1  comma  #0001 JMP2r
 
-( `compile,` - Compiles an execution token (code address) into a LIT2k #xx[xx] JSR[2] 
-  sequence )
+( `compile,` - Compiles an execution token (code address) into a LIT #xx JSR or
+  LIT2 #xxxx JSR2 sequence )
 ( xt -- )
 @h45 08 "compile, :h44a @compilecomma 
     cjumpaddr NIP ?compilecomma/long
@@ -652,7 +652,7 @@ f0 c0 80 00 00 00 00 00
 ( -- )
 @h59 81 "; :h58
     LITk JMP2r  ccomma1
-    #0000 ;state STA2 
+    #0000 ;state STA2
     !reveal
 
 ( `smudge` - Hides the topmost dictionary entry by fudging its name )
