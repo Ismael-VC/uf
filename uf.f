@@ -1051,6 +1051,7 @@ variable /snarfed
 \ The assembler has its own vocabulary, active when using `code`
 vocabulary assembler
 only also assembler definitions
+
 : op  ( c | <inst> -- ) create  c,  does>  c@ c, ;
 0 op BRK    1 op INC    2 op POP    3 op NIP    4 op SWP
 5 op ROT    6 op DUP    7 op OVR    8 op EQU    9 op NEQ
@@ -1060,6 +1061,7 @@ only also assembler definitions
 25 op SUB   26 op MUL   27 op DIV   28 op AND   29 op ORA
 30 op EOR   31 op SFT   32 op JCI   64 op JMI   96 op JSI
 h# 80 op LIT
+
 : fixup  ( u -- ) here 1- dup>r c@ or r> c! ;
 
 \ `"`  ( -- ) Modifies the previous instruction to a short version
@@ -1095,7 +1097,13 @@ h# 80 op LIT
 : &  here over lbls swap th !  resolve ;
 
 \ ```  ( | <word> -- ) Compile an immediate call (JSI) to a Forth word
-: `  JSI  ' here - , ;
+: `  JSI  ' here - 2 + , ;
+
+\ `!`  ( | <word> -- ) Compile an immediate jump (JNI) to a Forth word
+: !  JMI  ' here - 2 + , ;
+
+\ `?`  ( | <word> -- ) Compile an immediate conditional jump (JCI) to a Forth word
+: ?  JCI  ' here - 2 + , ;
 
 \ `,,`  ( x -- ) Compile a raw short (an alias for `,`, which has a different
 \    meaning in the assembler)
@@ -1176,7 +1184,7 @@ also decompiler definitions
   32  ->  [char] ? emit  |  64  ->  [char] ! emit  |  drop ;
 : ijmpop  ( op -- ) 
   32  ->  ." JCI"  |  64  ->  ." JMI"  |  drop ." JSI" ;
-\ I don't understand this at all: why this special case? it should be
+\ XXX I don't understand: why this special case? it should be
 \ simply addr + value + 2, or not?
 : rel16  ( a1 -- a2 ) dup @ dup h# 8000 and if  1-  then  + 2 + ;
 : decode-ijmp  ( a1 -- a2 ) dup 1- c@ >r
@@ -1189,25 +1197,24 @@ also decompiler definitions
 : decode-litk2  ( a1 -- a2 )
   @+ dup>r rfind  if  [char] ; emit  count significant type
     r> decode-jsr  |  [char] # emit  h4.  r>drop ;
-variable lit1
-: decode  ( a1 -- a2 ) count
+variable lit1   variable atend
+: end?  ( op -- f ) 0  ->  true  |  64  ->  true  |
+  h# 1f and h# 0c = ; 
+: decode  ( a1 -- a2 ) count  dup end? atend !
   h# 80  ->  [char] # emit  count dup lit1 c!  h2. |  lit1 off
   32  ->  decode-ijmp  |  64  ->  decode-ijmp  |
   96  ->  decode-ijmp  |  h# a0  ->  decode-litk2  |
   dup decode-op  decode-bits ;
 : chkijump  ( 0 ... a1 -- 0 ... [a2] a1 )
   dup 1+ @ h# 8000 and ?exit  dup 1+ @ over + 2 + swap ; 
-: ijump?  ( c -- f ) 32 -> true | 64 -> true | drop false ;
-: jump?  ( c -- f ) h# 1f and 12 15 within ;
+: ijump?  ( op -- f ) 32 -> true | 64 -> true | drop false ;
+: jump?  ( op -- f ) h# 1f and 12 15 within ;
 : chkjump  ( 0 ... a1 -- 0 ... [a2] a1 )
   dup c@ ijump?  if  chkijump  |
   dup c@ jump? 0= ?exit  lit1 c@ h# 80 and ?exit
   lit1 c@ ?dup 0= ?exit  over 1+ + swap ;
-: end?  ( op -- f ) 0  ->  true  |  64  ->  true  |
-  h# 1f and h# 0c = ; 
-: finished?  ( 0 ... a op -- -1 | 0 ... a 0 )
-  end? 0=  if  false  |
-  over 0=  if  2drop  true  else  false  then ;
+: finished?  ( 0 ... a1 a2 -- -1 | 0 ... a1 a2 0 )
+  atend @ dup 0= ?exit  drop over 0=  if  2drop true  |  false ;
 : dropfwds  ( 0 ... a -- 0 ... a )
   begin  over 0= ?exit
     2dup u> 0=  if  nip  else  exit  then
@@ -1217,14 +1224,14 @@ only forth definitions also decompiler
 \ `decompile`  ( xt -- ) Decompiles the code at the given address
 : decompile  0 swap ( marker )
   lit1 off  begin
-    chkjump  dropfwds  dup
-    decode  space  swap c@ finished? ?exit
+    atend off  chkjump  dropfwds
+    decode  space  finished? ?exit
   again ;
 
 \ `see`  ( | <word> -- ) Decompiles the definition of the next word in the input 
 \   stream
 : see  
-  bl word find dup 0= abort" word not found"
+  bl word find dup 0= abort" not found"
   1 =  if  ." (immediate) "  then
   decompile ;
 only forth
