@@ -1182,9 +1182,7 @@ also decompiler definitions
   32  ->  [char] ? emit  |  64  ->  [char] ! emit  |  drop ;
 : ijmpop  ( op -- ) 
   32  ->  ." JCI"  |  64  ->  ." JMI"  |  drop ." JSI" ;
-\ XXX I don't understand: why this special case? it should be
-\ simply addr + value + 2, or not?
-: rel16  ( a1 -- a2 ) dup @ dup h# 8000 and if  1-  then  + 2 + ;
+: rel16  ( a1 -- a2 ) dup @ + 2 + ;
 : decode-ijmp  ( a1 -- a2 ) dup 1- c@ >r
   dup rel16 rfind  if  
     r> ijmprune count significant type  2 + |
@@ -1203,12 +1201,8 @@ variable lit1   variable atend
   32  ->  decode-ijmp  |  64  ->  decode-ijmp  |
   96  ->  decode-ijmp  |  h# a0  ->  decode-litk2  |
   dup decode-op  decode-bits ;
-: chkijump  ( 0 ... a1 -- 0 ... [a2] a1 )
-  dup 1+ @ h# 8000 and ?exit  dup 1+ @ over + 2 + swap ; 
-: ijump?  ( op -- f ) 32 -> true | 64 -> true | drop false ;
 : jump?  ( op -- f ) h# 1f and 12 15 within ;
 : chkjump  ( 0 ... a1 -- 0 ... [a2] a1 )
-  dup c@ ijump?  if  chkijump  |
   dup c@ jump? 0= ?exit  lit1 c@ h# 80 and ?exit
   lit1 c@ ?dup 0= ?exit  over 1+ + swap ;
 : finished?  ( 0 ... a1 a2 -- -1 | 0 ... a1 a2 0 )
