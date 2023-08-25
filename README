@@ -17,14 +17,13 @@ I. Introduction
 
 This is a traditional Forth system for the "uxn/varvara"[1] virtual
 computer. "UF" is written in Tal[2] and Forth and provides an
-interactive text interface and screen editor. The implementation
-strategy is a mixture of subroutine-threading and native code
-generation, but currently only minimal optimizations are performed.
-The mapping of Forth source code to VM instructions is nevertheless
-relatively direct, so performance should be more than sufficient
-in all but the most speed-critical situations. Cells are 16 bits,
-the full system uses around 20K of memory, with another 4K needed
-for screen memory and buffers.
+interactive text interface and screen editor. The system is not
+threaded, it compiles to native UXN code, but currently only minimal
+optimizations are performed. The mapping of Forth source code to
+VM instructions is nevertheless relatively direct, so performance
+should be more than sufficient in all but the most speed-critical
+situations. Cells are 16 bits, the full system uses around 25K of
+memory, with another 4K needed for screen memory and buffers.
 
 
 II. Building UF
@@ -43,13 +42,13 @@ This will produce the following files:
         The kernel, containing minimal functionality to define new
         words.
 
-    uf.rom
+    uf0.rom
 
         The kernel and core words.
 
-    ufc.rom
+    uf.rom
 
-        The functionality of "uf.rom" together with words to access
+        The functionality of "uf0.rom" together with words to access
         "varvara" device ports in a more convenient matter, and some
         basic tools (like `dump`).
 
@@ -60,7 +59,7 @@ This will produce the following files:
 
 III. Using UF
 
-Run "uf.rom" and "ufc.rom" with "uxncli" as a normal terminal
+Run "uf0.rom" and "uf.rom" with "uxncli" as a normal terminal
 application. "ufx.rom" should be executed with "uxnemu":
 
     uxnemu ufx.rom <arguments ...>
@@ -186,6 +185,7 @@ words have a special meaning:
     &           ( u -- )    define label
     ,           ( u -- )    reference previously defined label as relative
                             branch distance
+    `    ( | <word> -- )    Compile immediate call of Forth word
 
 Currently only 16 labels can be defined. You can insert absolute
 references to other Forth words using the sequence `' <word> #"`

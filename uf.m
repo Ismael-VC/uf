@@ -18,13 +18,13 @@ Version: 8
 "UF" is a traditional Forth system for the "uxn/varvara" virtual
 computer. Uf is written in Tal and itself and provides an interactive
 text interface, uxn assembler, decompiler and screen editor. The
-implementation strategy is a mixture of subroutine-threading and
-native code generation, but currently only minimal optimizations
-are performed.  The mapping of Forth source code to VM instructions
-is nevertheless relatively direct, so performance should be more
-than sufficient in all but the most speed-critical situations. Cells
-are 16 bits, the full system consists of around 20K, with around
-4K needed for screen memory and buffers.
+system is not threaded, it compiles to native UXN code, but currently
+only minimal optimizations are performed.  The mapping of Forth
+source code to VM instructions is nevertheless relatively direct,
+so performance should be more than sufficient in all but the most
+speed-critical situations. Cells are 16 bits, the full system
+consists of around 25K, with around 4K needed for screen memory and
+buffers.
 
 Suggestions for improvement or patches providing enhancements and
 corrections are very welcome, see the User's manual for information
@@ -42,12 +42,13 @@ into the public domain. Do with it whatever you like.
 Release History:
 
 Version 8:
-    * Renamed ROMs to "uf.rom" (minimal), "ufc.rom" (tools) and "ufx.rom"
-      (graphical, editor).
+    * Renamed ROMs to "uf0.rom" (minimal), "uf.rom" (tools) and "ufx.rom"
+      (graphical console + editor).
     * Heavily commented both the uxntal kernel and the Forth source code.
     * Fixed corner case in "bounce" example (thanks to Harry Prins).
     * Adapted kernel to newest UXN system version for stack-access
-      primitives.
+      primitives (many thanks to Devine for resurrecting the wst/rst
+      system device ports).
     * The kernel uses immediate branches were possible, which reduces
       the kernel size slightly.
     * `wait` has been removed, `pause` now installs the `tick` handler
