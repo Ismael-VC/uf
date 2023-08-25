@@ -876,14 +876,12 @@ variable devaudio  h# 30 devaudio !
 : hour  196 dei ;       : minute  197 dei ;     : second  198 dei ;
 : dotw  199 dei ;       : doty  200 dei2 ;      : isdst  202 dei ;
 
-\ `pause`  ( -- ) Set Screen/vector and wait for events from other devices,
+\ `wait`  ( -- ) Set Screen/vector and wait for events from other devices,
 \   during this time the word `tick` is called 60 times per second (or less),
 \   which should keep the stacks as they are on return 
 defer tick  ' noop is tick
 : waiting  tick  brk ;
-: pause  r>drop  ['] waiting svector  brk ;
-\ `wait` is now named `pause`, add this for backwards compatibility:
-: wait pause ;
+: wait  r>drop  ['] waiting svector  brk ;
 
 \ Support for theme and snarf conventions:
 
@@ -1663,7 +1661,7 @@ defer ctrl-key  ( key -- key|0 )
 defer other-key  ( key -- )
 defer handle-button  ( key but -- key|0 )
 : input  0 pointer
-  jkey  jbutton handle-button  other-key  update  pause ;
+  jkey  jbutton handle-button  other-key  update  wait ;
 : no-events  0 jvector  0 mvector  0 cvector  0 svector ;
 
 \ Block I/O
@@ -1740,19 +1738,19 @@ create editpos 0 , 0 ,
   block @ + 1 max edit ;
 : mouseinput  0 pointer  mouse>loc pointerx !  pointery !
   mscroll nip ?dup  if  shiftblock  then
-  1 pointer  clicked  pause ;
+  1 pointer  clicked  wait ;
 
 \ Waiting for events
 : handlecin  ( c -- )
   0  ->  |  9  ->  tab  |
   10  ->  enter  no-events  r>drop  |  insert ;
-: (stdin)  18 dei  handlecin  pause ;
+: (stdin)  18 dei  handlecin  wait ;
 : events  ['] input jvector  ['] stdin cvector
   ['] mouseinput mvector ;
 : listen  events
   dirty @ 0<>  locked @ 0<>  and  if
     buf>screen  redraw  update  dirty off  then
-  pause ;
+  wait ;
 
 \ Block loading (evaluation)
 : load1  ( u -- ) ."  #" dup . 

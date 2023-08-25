@@ -239,7 +239,6 @@ over        ( x y -- x y x )        Push second value on stack
 pad         ( -- a )                Push scratchpad area address
 page        ( -- )                  Clear screen [GD]
 parse       ( c | ... <c> -- a u )  Parse and return string delimited by c
-pause       ( -- )                  Allow interrupt handling [X] 
 pick        ( ... u -- x )          Push u-th value on stack, coujnted from top
 pixel       ( u -- )                Set pixel field of screen device [GX]
 place       ( a1 u a2 -- )          Store string a1,u as counted string at a2
