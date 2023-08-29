@@ -1095,13 +1095,13 @@ h# 80 op LIT
 : &  here over lbls swap th !  resolve ;
 
 \ ```  ( | <word> -- ) Compile an immediate call (JSI) to a Forth word
-: `  JSI  ' here - 2 + , ;
+: `  JSI  ' here - 2 - , ;
 
 \ `!`  ( | <word> -- ) Compile an immediate jump (JNI) to a Forth word
-: !  JMI  ' here - 2 + , ;
+: !  JMI  ' here - 2 - , ;
 
 \ `?`  ( | <word> -- ) Compile an immediate conditional jump (JCI) to a Forth word
-: ?  JCI  ' here - 2 + , ;
+: ?  JCI  ' here - 2 -' , ;
 
 \ `,,`  ( x -- ) Compile a raw short (an alias for `,`, which has a different
 \    meaning in the assembler)
