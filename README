@@ -273,7 +273,7 @@ Screen:
     sprite  svector
 
 Audio:
-    sample  play  adsr  volume  output
+    sample  play  adsr  volume  output  avector
 
 Controller:
     jkey  jbutton  jvector
