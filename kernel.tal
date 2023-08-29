@@ -21,7 +21,7 @@ for the block editor defined in "uf.f", the space can be used freely if the edit
 is not used. )
 
 ( Constants used in banner )
-%VERSION { 0008 }
+%VERSION { 0009 }
 %COPYRIGHT { "(c)MMXXII 20 "Felix 20 "L. 20 "Winkelmann 00 }
 
 ( Debug helper macro )
