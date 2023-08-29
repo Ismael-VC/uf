@@ -41,6 +41,9 @@ into the public domain. Do with it whatever you like.
 Release History:
 
 Version 9:
+    * Fixed incorrect offset computations in the ```, `!` and `?` assembler
+      words.
+    * Fixed totally broken `rnd` (thanks to Harry Prins for reporting this)
 
 Version 8:
     * All calls to Forth words use immediate branches now, which reduces
