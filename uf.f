@@ -1242,11 +1242,11 @@ code rnd
     \ which is never zero but every other 16-bit number
     \ appears once before the sequence repeats )
     \ http://www.retroprogramming.com/2017/07/xorshift-pseudorandom-numbers-in-z80.html
-    ' seed #" LDA "
+    ` seed LDA "
     DUP " h# 70 # SFT " EOR "
     DUP " 9 # SFT " EOR "
     DUP " h# 80 # SFT " EOR "
-    ' seed #" STA " k POP "
+    ` seed STA " k POP "
     JMP " r
 end-code
 
