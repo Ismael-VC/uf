@@ -89,12 +89,12 @@ is not used. )
 
 ( `base` - Number base, used in string -> number conversion )
 ( -- a )
-@h1 04 "base :h0 var_ @base 000a
+@h1 04 "base =h0 var_ @base 000a
 
 ( `icon` - The icon shown in the banner in the graphical variant run with "uxnemu".
   Remember: stack correctly! )
 ( -- a )
-@h1a 04 "icon :h1 var_
+@h1a 04 "icon =h1 var_
 00 00 00 00 00 00 00 00 
 00 00 00 00 00 01 07 0f 
 00 00 07 3f 7f ff ff ff 
@@ -170,7 +170,7 @@ f0 c0 80 00 00 00 00 00
 
   Uses `base` as the current base for numeric conversion )
 ( a -- n )
-@h2 06 "number :h1a @number
+@h2 06 "number =h1a @number
     LIT2r 0000 #01 ;&sgn STA
     DUP2 ;&addr STA2
     ;count JSR2 OVR2 LDA #2d NEQ ,&loop JCN
@@ -212,18 +212,18 @@ f0 c0 80 00 00 00 00 00
 ( `/string` - Advance an address/length pair by u2 bytes; this is the other
   representation of strings used: two values with an address and a count )
 ( a1 u1 u2 -- a2 u2 )
-@h3 07 "/string :h2 @slashstring
+@h3 07 "/string =h2 @slashstring
     STH2k SUB2 SWP2 STH2r ADD2 SWP2 JMP2r
 
 ( `vocs` - A buffer of 4 elements with dictionary entry points, `find` searches
   through each chain until it finds the given name - or not )
 ( -- a )
-@h4 04 "vocs :h3 var_
-@vocs :dp :null &mid :null :null @endvocs
+@h4 04 "vocs =h3 var_
+@vocs =dp =null &mid =null =null @endvocs
 
 ( `within` - Test whether n3 is within n1 and n2, exclusive )
 ( n1 n2 n3 -- f )
-@h5 06 "within :h4 @within
+@h5 06 "within =h4 @within
     OVR2 SUB2 STH2 SUB2 STH2r LTH2 DUP JMP2r
 
 ( `find` - Find a counted string in the dictionary, goes through each entry-point in
@@ -232,7 +232,7 @@ f0 c0 80 00 00 00 00 00
   [-1] or not found at all [0]; in the latter case a2 will be the original counted
   string argument )
 ( a1 -- a2 n )
-@h6 04 "find :h5 @find
+@h6 04 "find =h5 @find
     STH2 ;vocs
 &vloop
     LDA2k LDA2
@@ -258,7 +258,7 @@ f0 c0 80 00 00 00 00 00
   strings are equal [0], the first one is lexicographically before [-1] or after
   the second string [1] )
 ( a1 u1 a2 u2 -- n )
-@h7 07 "compare :h6 @compare
+@h7 07 "compare =h6 @compare
     ,&len2 STR2 SWP2 ,&len1 STR2k POP
     ,&len2 LDR2 LTH2k JMP SWP2 POP2 STH2
 &loop
@@ -282,37 +282,37 @@ f0 c0 80 00 00 00 00 00
 
 ( `reset` - Clear the return-stack )
 ( -- )
-@h8 05 "reset :h7 @reset
+@h8 05 "reset =h7 @reset
     STH2r  #0005 DEO  JMP2
 
 ( `clear` - Clear the value stack )
 ( ... -- )
-@h9 05 "clear :h8 @clear
+@h9 05 "clear =h8 @clear
     #0004 DEO  JMP2r
 
 ( `query` - Read input using `accept` and store it in the text input buffer,
   delimited by the `>in` and `>limit` variables )
 ( | ... -- )
-@h10 05 "query :h9 @query ;&vec JMP2 &vec ( simulate deferred word )
+@h10 05 "query =h9 @query ;&vec JMP2 &vec ( simulate deferred word )
     ;tib #0400 accept  ;tib ADD2 ;plimit STA2 
     ;tib ;pin STA2 JMP2r
 
 ( `tib` - The text input buffer )
 ( -- a )
-@h11 03 "tib :h10 var_ @tib $0400
+@h11 03 "tib =h10 var_ @tib $0400
 
 ( `>in` - Points to the next character to be fetched from the TIB )
 ( -- a )
-@h12 03 ">in :h11 var_ @pin 0000
+@h12 03 ">in =h11 var_ @pin 0000
 
 ( `>limit` - Points to the end of the text currently in the TIB )
 ( -- a )
-@h13 06 ">limit :h12 var_ @plimit 0000
+@h13 06 ">limit =h12 var_ @plimit 0000
 
 ( `accept` - Read characters using the `key` word and store them at the given
   address, returns the number of characters read )
 ( a u1 -- u2 )
-@h14 06 "accept :h13 @accept
+@h14 06 "accept =h13 @accept
     ,&getn STR2 ,&input STR2 #0000 ,&all STR2
 &loop
     ;key JSR2 NIP DUP #0a EQU ?accept/nl
@@ -330,7 +330,7 @@ f0 c0 80 00 00 00 00 00
 ( `quit` - Resets all stacks and enter the main interaction loop, this word never
   returns )
 ( ... | ... -- )
-@h15 04 "quit :h14 @quit
+@h15 04 "quit =h14 @quit
     reset  clear
 &loop
     query  interpret  prompt
@@ -338,18 +338,18 @@ f0 c0 80 00 00 00 00 00
 
 ( `(prompt)` - The default behaviour of `prompt`: prints "ok\n" )
 ( -- )
-@h16 08 "(prompt) :h15
+@h16 08 "(prompt) =h15
     ;&prompt #0004 !type
 &prompt 20 "ok 0a
 
 ( `prompt` - A deferred word that shows a prompt message before waiting for
   user interaction )
 ( -- )
-@h17 06 "prompt :h16 @prompt ;noop JMP2 ( deferred )
+@h17 06 "prompt =h16 @prompt ;noop JMP2 ( deferred )
 
 ( `type` - Writes a string character by character using the `emit` word )
 ( a u -- )
-@h18 04 "type :h17 @type
+@h18 04 "type =h17 @type
     ORAk ?type/next
     POP2 POP2 JMP2r
 &next
@@ -360,7 +360,7 @@ f0 c0 80 00 00 00 00 00
   dictionary using `find` and either invokes it, if found, or tries to convert it into
   a number by using `number`. If all fails, an error is shown )
 ( ... | ... -- ... )
-@h19 09 "interpret :h18 @interpret
+@h19 09 "interpret =h18 @interpret
     #0020  word  LDAk ?interpret/next
     POP2 JMP2r
 &next
@@ -373,13 +373,13 @@ f0 c0 80 00 00 00 00 00
 ( `count` - Fetches the first byte of a counted string and adds 1 to the address,
   handy in many cases, not necessarily only for counted strings )
 ( a1 -- a2 u )
-@h20 05 "count :h19 @count
+@h20 05 "count =h19 @count
     LDAk STH INC2 STHr #00 SWP JMP2r
 
 ( `undefd` - Writes a counted string using `emit` followed by question mark and
   calls `abort` )
 ( ... a -- )
-@h21 06 "undefd :h20 @undefd
+@h21 06 "undefd =h20 @undefd
     #0020  emit  count  type
     ;&qnl #0003  type  !abort
 &qnl
@@ -387,24 +387,24 @@ f0 c0 80 00 00 00 00 00
 
 ( `abort` - Hook for aborting, default behaviour is `(abort)` )
 ( ... -- )
-@h22 05 "abort :h21 @abort ;abort0 JMP2 ( deferred )
+@h22 05 "abort =h21 @abort ;abort0 JMP2 ( deferred )
 
 ( `(abort)` -  Resets the compilation state, numeric base and vocabulary stack and
   invokes `quit` )
-@h22a 07 "(abort) :h22 @abort0
+@h22a 07 "(abort) =h22 @abort0
     #0000 ;state STA2 #000a ;base STA2 
     only  !quit
 
 ( `state` - Variable set to true when the system is currently in "compilation" state,
   that is, it is parsing and compiling a colon (`:`) definition )
 ( -- a )
-@h23 05 "state :h22a var_ @state 0000
+@h23 05 "state =h22a var_ @state 0000
 
 ( `word` - Takes a character and parses input from the TIB until the end of TIB
   is reached (`>limit`) or until the character or space is encountered; the address 
   of a counted string holding the parsed word is returned )
 ( c | ... -- a )
-@h24 04 "word :h23 @word
+@h24 04 "word =h23 @word
     getc  NIP
     DUP #20 EQU ?word/loop
     DUP #09 EQU ?word/loop
@@ -418,13 +418,13 @@ f0 c0 80 00 00 00 00 00
 ( `place` - Copies the string given by an address/count pair to another address as
   a counted string )
 ( a1 n a2 -- )
-@h25 05 "place :h24 @place
+@h25 05 "place =h24 @place
     OVR2 OVR2 STH2 STH2 INC2 SWP2  cmove 
     STH2r NIP STH2r STA JMP2r
 
 ( `cmove` - Copies memory around, starting at the first byte )
 ( a1 a2 n -- )
-@h26 05 "cmove :h25 @cmove
+@h26 05 "cmove =h25 @cmove
     SWP2 STH2
 &loop
     ORAk ?cmove/next
@@ -437,7 +437,7 @@ f0 c0 80 00 00 00 00 00
   pair of the parsed string, the data will not be copied and be valid until the TIB
   is filled anew )
 ( c | ... -- a u )
-@h27 05 "parse :h26 @parse
+@h27 05 "parse =h26 @parse
     ;pin LDA2 STH2
 &loop
     ;pin LDA2 ;plimit LDA2 LTH2 #00 EQU ?parse/end
@@ -451,37 +451,37 @@ f0 c0 80 00 00 00 00 00
 
 ( `getc` - Fetch next byte from the TIB )
 ( -- c )
-@h28 04 "getc :h27 @getc
+@h28 04 "getc =h27 @getc
     ;pin LDA2 LDAk STH INC2 ;pin STA2 STHr #00 SWP JMP2r   
 
 ( `deo` - Write byte to device )
 ( c u -- )
-@h35 03 "deo :h28 NIP ROT POP DEO JMP2r
+@h35 03 "deo =h28 NIP ROT POP DEO JMP2r
 
 ( `dei` - Reads a byte from a device )
 ( u -- c )
-@h36 03 "dei :h35 NIP DEI #00 SWP JMP2r
+@h36 03 "dei =h35 NIP DEI #00 SWP JMP2r
 
 ( `deo2` - Writes a short (2 bytes) to a device )
 ( x u -- )
-@h37 04 "deo2 :h36 NIP DEO2 JMP2r
+@h37 04 "deo2 =h36 NIP DEO2 JMP2r
 
 ( `dei2` - Reads a short from a device )
 ( u -- x )
-@h38 04 "dei2 :h37 NIP DEI2 JMP2r
+@h38 04 "dei2 =h37 NIP DEI2 JMP2r
 
 ( `h` - Variable holding the current top address of the used part of memory )
 ( -- a )
-@h39 01 "h :h38 var_ @h :here
+@h39 01 "h =h38 var_ @h =here
 
 ( `noop` - Does nothing, sometimes useful for deferred words, for example )
 ( -- )
-@h40 04 "noop :h39 @noop JMP2r
+@h40 04 "noop =h39 @noop JMP2r
 
 ( `?redef` - Check if the given counted string can be found in the dictionary
   and print a warning if it does )
 ( a -- )
-@h40a 06 "?redef :h40 @qredef 
+@h40a 06 "?redef =h40 @qredef 
     DUP2  find  ORA  ?qredef/warn
     POP2 POP2 JMP2r
 &warn
@@ -493,7 +493,7 @@ f0 c0 80 00 00 00 00 00
   stream; the code field will be empty and needs to be created to make this word
   usable )
 ( | <word> -- )
-@h41 04 "head :h40a @head
+@h41 04 "head =h40a @head
     #0020  word  DUP2 qredef  count 
     ;h LDA2 STH2
     #1f AND STHk ;h LDA2  place
@@ -505,20 +505,20 @@ f0 c0 80 00 00 00 00 00
 ( `dp` - The default dictionary entry point, used internally to populate the
   base dictionary )
 ( -- a )
-@h42 02 "dp :h41 var_ @dp :htop :&forth 0000
+@h42 02 "dp =h41 var_ @dp =htop =&forth 0000
 &forth 05 "forth
 
 ( `current` - A variable holding the address of the dictionary entry point in which
   the next entry will be created using `head` )
 ( -- a )
-@h43 07 "current :h42 var_ @current :dp
+@h43 07 "current =h42 var_ @current =dp
 
 ( `also` - Shifts the vocabulary stack to make place for a new vocabulary with the
   currently last entry being shifted out; the current vocabulary given will be 
   duplicated at front of the vocabulary stack and can now be overwritten by invoking
   a defined vocabulary word )
 ( -- )
-@h44 04 "also :h43 @also
+@h44 04 "also =h43 @also
     ;vocs/mid also/copy
     #0002 SUB2 also/copy
     #0002 SUB2 also/copy
@@ -530,7 +530,7 @@ f0 c0 80 00 00 00 00 00
   depending on distance; returns a flag indicating whether the jump is long [1]
   or short [0] )
 ( a -- f )
-@h44a 09 "jumpaddr, :h44 @cjumpaddr
+@h44a 09 "jumpaddr, =h44 @cjumpaddr
     DUP2 ;h LDA2 INC2 INC2 INC2 SUB2 #ff80 LTH2k ?cjumpaddr/long
     POP2 LITk LITk SWP  comma  POP POP2 #0000 JMP2r
 &long
@@ -538,26 +538,26 @@ f0 c0 80 00 00 00 00 00
 
 ( `compile,` - Compiles an execution token (code address) into a immediate call (JSI) )
 ( xt -- )
-@h45 08 "compile, :h44a @compilecomma
+@h45 08 "compile, =h44a @compilecomma
     #60 ccomma1  ;h LDA2 SUB2 #0002 SUB2 !comma
 
 ( `,` - Compiles an arbitrary word into the address of the currently available space
   and advances `h` )
 ( x -- )
-@h46 01 ", :h45 @comma  ;h LDA2 STA2k NIP2 INC2 INC2 ;h STA2 JMP2r
+@h46 01 ", =h45 @comma  ;h LDA2 STA2k NIP2 INC2 INC2 ;h STA2 JMP2r
 
 ( `c,` - Compiles a byte )
 ( c -- )
-@h47 02 "c, :h46  NIP @ccomma1 ;h LDA2 STAk INC2 ;h STA2 POP JMP2r
+@h47 02 "c, =h46  NIP @ccomma1 ;h LDA2 STAk INC2 ;h STA2 POP JMP2r
 
 ( `allot` - Advances `h` by a number of bytes )
 ( n -- )
-@h48 05 "allot :h47 @allot ;h LDA2k ROT2 ADD2 SWP2 STA2 JMP2r
+@h48 05 "allot =h47 @allot ;h LDA2k ROT2 ADD2 SWP2 STA2 JMP2r
 
 ( `'` - Takes the next word in the input stream and pushes its address or aborts
   with an error if not found )
 ( | <word> -- xt )
-@h49 01 "' :h48 @tick
+@h49 01 "' =h48 @tick
     #0020  word  find  ORA ?tick/found
     !undefd
 &found
@@ -566,17 +566,17 @@ f0 c0 80 00 00 00 00 00
 ( `(variable)` - Internal code invoked for variable definitions which just pushes
   the address )
 ( -- a )
-@h50 0a "(variable) :h49 @var_  STH2r JMP2r
+@h50 0a "(variable) =h49 @var_  STH2r JMP2r
 
 ( `(constant)` - Internal code invoked for constant definitions which just pushes
   the contents )
 ( -- x )
-@h51 0a "(constant) :h50 @const_ STH2r LDA2 JMP2r
+@h51 0a "(constant) =h50 @const_ STH2r LDA2 JMP2r
 
 ( `compilejmp,` - Compiles a backward JMP instruction, appropriate for the distance
   required )
 ( a -- )
-@h52 0b "compilejmp, :h51 @compilejmpcomma
+@h52 0b "compilejmp, =h51 @compilejmpcomma
     cjumpaddr  ?compilejmpcomma/long
     LITk JMP !ccomma1
 &long
@@ -585,26 +585,26 @@ f0 c0 80 00 00 00 00 00
 ( `(2constant) - Internal code invoked for double-word constant definitions which 
   just pushes the contents )
 ( -- x1 x2 )
-@h52a 0b "(2constant) :h52
+@h52a 0b "(2constant) =h52
     STH2r LDA2k SWP2 INC2 INC2 LDA2 JMP2r
 
 ( `:` - Starts a compiled "colon" definition; during compilation the newly defined
   word is "smudged", that is, made unfindable, so any occurrence of the defined
   word refers to any previous definition )
 ( | <word> ... -- )
-@h54 01 ": :h52a
+@h54 01 ": =h52a
     head  smudge  also  compiler  !compile
 
 ( `null` - A variable holding zero, used in some places here )
 ( -- a )
-@h55 04 "null :h54 var_ @null 0000 0000
+@h55 04 "null =h54 var_ @null 0000 0000
 
 ( `(compile)` - Sets compilation state to true and starts compiling words from the
   input stream; each word parsed is either compiled as a call, invoked immediately
   [for immediate words] or parsed as a number and compiled as code that pushes that
   number; if a word can not be found or is not a number, then aborts with an error )
 ( | ... -- )
-@h56 09 "(compile) :h55 @compile
+@h56 09 "(compile) =h55 @compile
     #ffff ;state STA2
 &loop
     #0020  word  LDAk ?compile/cont
@@ -625,8 +625,8 @@ f0 c0 80 00 00 00 00 00
 
 ( `previous` - Shifts the vocabulary stack by one, popping the topmost entry )
 ( -- )
-@h56a 08 "previous :h56 @previous
-    LIT2r :null ;endvocs
+@h56a 08 "previous =h56 @previous
+    LIT2r =null ;endvocs
 &restore
     #0002 SUB2 ;vocs LTH2k ?previous/done
     POP2 LDA2k STH2 SWP2r STH2r SWP2 STA2k NIP2
@@ -636,55 +636,55 @@ f0 c0 80 00 00 00 00 00
 
 ( `cdp` - The "compiler" vocabulary, active during compilation of colon words )
 ( -- a )
-@h57 03 "cdp :h56a var_ @cdp 0000 :&compiler :dp
+@h57 03 "cdp =h56a var_ @cdp 0000 =&compiler =dp
 &compiler  ( hack: use following counted string )
 
 ( `compiler` - Sets the topmost entry in the vocabulary stack to the "compiler"
   vocabulary )
-@h58 08 "compiler :h57 @compiler ;cdp ;vocs STA2 JMP2r
+@h58 08 "compiler =h57 @compiler ;cdp ;vocs STA2 JMP2r
 
 ( `;` - Compiles a return instruction and ends compilation mode, "revealing" the
   "smudged" word in the dictionary )
 ( -- )
-@h59 81 "; :h58
+@h59 81 "; =h58
     LITk JMP2r  ccomma1
     #0000 ;state STA2
     !reveal
 
 ( `smudge` - Hides the topmost dictionary entry by fudging its name )
 ( -- )
-@h60 06 "smudge :h59 @smudge 
+@h60 06 "smudge =h59 @smudge 
     ;current LDA2 LDA2 LDAk #40 ORA ROT ROT STA JMP2r
 
 ( `reveal` - Reveales the topmost dictionary entry by unfudging its name )
 ( -- )
-@h61 06 "reveal :h60 @reveal 
+@h61 06 "reveal =h60 @reveal 
     ;current LDA2 LDA2 LDAk #bf AND ROT ROT STA JMP2r
 
 ( `immediate` - Marks the topmost dictionary entry as an "immediate" word )
 ( -- )
-@h63 09 "immediate :h61 ;current LDA2 LDA2 LDAk #80 ORA ROT ROT STA JMP2r
+@h63 09 "immediate =h61 ;current LDA2 LDA2 LDAk #80 ORA ROT ROT STA JMP2r
 
 ( `lshift` - Shift number to the left )
 ( x1 u -- x2 )
-@h64 06 "lshift :h63 NIP #40 SFT SFT2 JMP2r
+@h64 06 "lshift =h63 NIP #40 SFT SFT2 JMP2r
 
 ( `rshift` - Shift number to the right )
 ( x1 u -- x2 )
-@h65 06 "rshift :h64 NIP #0f AND SFT2 JMP2r
+@h65 06 "rshift =h64 NIP #0f AND SFT2 JMP2r
 
 ( `(slit)` - Internal word used to push string literals, skips string embedded
   in code and pushes address and length )
 ( -- a u )
-@h66 06 "(slit) :h65 STH2kr INC2 STH2r LDAk #00 SWP SWP2 OVR2 INC2 ADD2 JMP2
+@h66 06 "(slit) =h65 STH2kr INC2 STH2r LDAk #00 SWP SWP2 OVR2 INC2 ADD2 JMP2
 
 ( `tuck` - Push topmost word below the second )
 ( x y -- y x y )
-@h67 04 "tuck :h66 STH2k SWP2 STH2r JMP2r
+@h67 04 "tuck =h66 STH2k SWP2 STH2r JMP2r
 
 ( `(if)` - Internal word used in compiling conditional branches )
 ( f -- )
-@h68 04 "(if) :h67 @if_
+@h68 04 "(if) =h67 @if_
     STH2r SWP2 ORA ?if_/nobranch
     LDA2 JMP2
 &nobranch
@@ -692,19 +692,19 @@ f0 c0 80 00 00 00 00 00
 
 ( `(else)` - Internal word used in compiling unconditional branches )
 ( -- )
-@h69 06 "(else) :h68  STH2r LDA2 JMP2
+@h69 06 "(else) =h68  STH2r LDA2 JMP2
 
 ( `u/mod` - Compurte unsigned division and remainder results, pushing quotient last )
 ( u1 u2 - u3 u4 )
-@h72 05 "u/mod :h69 DIV2k STH2k MUL2 SUB2 STH2r JMP2r
+@h72 05 "u/mod =h69 DIV2k STH2k MUL2 SUB2 STH2r JMP2r
 
 ( `umod` - Compute unsigned remainder )
 ( u1 u2 -- u3 )
-@h73 04 "umod :h72 DIV2k MUL2 SUB2 JMP2r
+@h73 04 "umod =h72 DIV2k MUL2 SUB2 JMP2r
 
 ( `fill` - Fill block of memory with byte )
 ( a u c -- )
-@h74 04 "fill :h73 @fill
+@h74 04 "fill =h73 @fill
     STH POP
 &loop
     ORAk ?fill/cont
@@ -716,32 +716,32 @@ f0 c0 80 00 00 00 00 00
 ( `emit` - Write an ASCII character to the console device; this word will later
   be modified for the graphical variant )
 ( c -- )
-@h76 04 "emit :h74 @emit ;&vec JMP2 &vec NIP #18 DEO JMP2r ( deferred )
+@h76 04 "emit =h74 @emit ;&vec JMP2 &vec NIP #18 DEO JMP2r ( deferred )
 
 ( `key` - Read an ASCII character from the console device; this word will later
   be modified for the graphical variant )
 ( -- c )
-@h77 03 "key :h76 @key ;&vec JMP2 &vec ( deferred )
+@h77 03 "key =h76 @key ;&vec JMP2 &vec ( deferred )
     ;&getkey #10 DEO2 BRK
 &getkey
     #12 DEI #0000 #10 DEO2 #00 SWP JMP2r
 
 ( `<` - Pushes 1 if the first argument is less than the second or 0 otherwise )
 ( n1 n2 -- f )
-@h78 01 "< :h77
+@h78 01 "< =h77
     #8000 ADD2 SWP2 #8000 ADD2 GTH2 DUP
     JMP2r
 
 ( `>` - Pushes 1 if the first argument is greater than the second or 0 otherwise )
 ( n1 n2 -- f )
-@h79 01 "> :h78
+@h79 01 "> =h78
     #8000 ADD2 SWP2 #8000 ADD2 LTH2 DUP
     JMP2r
 
 ( `(loop)` - Internal word used for the compilation of DO ... LOOP
   branches )
 ( -- )
-@h80 06 "(loop) :h79 @loop_
+@h80 06 "(loop) =h79 @loop_
     STH2r SWP2 STH2 ADD2r GTH2kr STHr ?loop_/loop
     POP2r POP2r #00 ROT ROT JMP2
 &loop
@@ -749,31 +749,31 @@ f0 c0 80 00 00 00 00 00
 
 ( `i` - Pushes the current index of the innermost DO ... LOOP )
 ( -- u )
-@h81 01 "i :h80 SWP2r STH2kr SWP2r JMP2r
+@h81 01 "i =h80 SWP2r STH2kr SWP2r JMP2r
 
 ( `j` - Pushes the current index of the second innermost DO ... LOOP )
 ( -- u )
-@h82 01 "j :h81 STH2r STH2r STH2r STH2kr SWP2 STH2 SWP2 STH2 SWP2 JMP2
+@h82 01 "j =h81 STH2r STH2r STH2r STH2kr SWP2 STH2 SWP2 STH2 SWP2 JMP2
 
 ( `definitions` - Makes the topmost entry in the vocabulary the one that will
   receive future entry definitions (using `head`) by setting `current` )
 ( -- )
-@h83 0b "definitions :h82 ;vocs LDA2 ;current STA2 JMP2r
+@h83 0b "definitions =h82 ;vocs LDA2 ;current STA2 JMP2r
 
 ( `only` - Clears the vocabulary stack and initializes it to the default `forth`
   vocabulary )
 ( -- )
-@h85 04 "only :h83 @only
+@h85 04 "only =h83 @only
     ;dp ;vocs STA2k NIP2 ;null SWP2 
     INC2 INC2 STA2k INC2 INC2 STA2k INC2 INC2 STA2 JMP2r
 
 ( `?dup` - Duplicates the topmost stack entry unless it is 0 )
 ( x -- x [x] )
-@h86 04 "?dup :h85 ORAk #00 EQU JMP DUP2 JMP2r
+@h86 04 "?dup =h85 ORAk #00 EQU JMP DUP2 JMP2r
 
 ( `cmove>` - Like `cmove`, but copies from the end )
 ( a1 a2 u -- )
-@h87 06 "cmove> :h86 @cmover
+@h87 06 "cmove> =h86 @cmover
     STH2k ADD2 SWP2 STH2r SWP2 STH2k ADD2
 &loop
     #0001 SUB2
@@ -785,7 +785,7 @@ f0 c0 80 00 00 00 00 00
 
 ( `abs` - Compute absolute value )
 ( n -- u )
-@h88 03 "abs :h87 @abs
+@h88 03 "abs =h87 @abs
     DUP2 #8000 AND2 POP ?abs/neg
     JMP2r
 &neg
@@ -796,7 +796,7 @@ f0 c0 80 00 00 00 00 00
 
 ( `/` - Divides two numbers )
 ( n1 n2 -- n3 )
-@h89 01 "/ :h88 @slash
+@h89 01 "/ =h88 @slash
     #01 ,divsign STR
     SWP2  abs
     SWP2  abs
@@ -808,7 +808,7 @@ f0 c0 80 00 00 00 00 00
 
 ( `/mod` - Pushes remainder and quotient of two numbers )
 ( n1 n2 -- n3 n4 )
-@h89a 04 "/mod :h89 @slashmod
+@h89a 04 "/mod =h89 @slashmod
     #01 ,divsign STR
     SWP2  abs
     SWP2  abs
@@ -824,7 +824,7 @@ f0 c0 80 00 00 00 00 00
 
 ( `mod` -- Computes the remainder )
 ( n1 n2 -- n3 )
-@h90 03 "mod :h89a
+@h90 03 "mod =h89a
     SWP2 ,abs JSR
     SWP2 ,abs JSR
     DIV2k MUL2 SUB2 JMP2r
@@ -834,7 +834,7 @@ f0 c0 80 00 00 00 00 00
   because we first need to copy the loading code into the zeropage so it isn't
   overwritten by the loaded data )
 ( -- )
-@h91 09 "(loadrom) :h90 @loadrom_
+@h91 09 "(loadrom) =h90 @loadrom_
     ;&start #0010 ;&end ;&start SUB2  cmove
     #0010 JMP2
 &start
@@ -848,13 +848,13 @@ f0 c0 80 00 00 00 00 00
 
 ( `depth` - Pushes the number of items on the data stack )
 ( -- u )
-@h92 05 "depth :h91
+@h92 05 "depth =h91
     #04 DEI #01 SFT #00 SWP
     JMP2r
 
 ( `pick` - Fetches the u-th entry from the data stack )
 ( ... u -- x )
-@h93 04 "pick :h92 @pick
+@h93 04 "pick =h92 @pick
     DUP ,&n STR
 &loop
     DUP ?pick/next
@@ -875,11 +875,11 @@ f0 c0 80 00 00 00 00 00
 
 ( `version` - Constant holding the current UF version )
 ( -- u )
-@h94 07 "version :h93 const_ VERSION
+@h94 07 "version =h93 const_ VERSION
 
 ( `copyright` - Returns the copyright string and length )
 ( -- a u )
-@h95 09 "copyright :h94 @copyright_
+@h95 09 "copyright =h94 @copyright_
     ;copyright DUP2 #0001 SUB2
 &loop
     INC2 LDAk ?copyright_/loop
@@ -888,12 +888,12 @@ f0 c0 80 00 00 00 00 00
 
 ( `\` - Ignore rest of input line )
 ( | ... -- )
-@h96 81 "\ :h95 ;pin LDA2 ;plimit STA2 JMP2r
+@h96 81 "\ =h95 ;pin LDA2 ;plimit STA2 JMP2r
 
 ( `boot` - The startup code, executed once a rom holding this kernel starts, the
   default shows the prompt and enters the interaction loop; this word can be
   redefined at any time, saving the current memory contents as a ROM will invoke
   the topmost entry for `boot` found )
 ( -- )
-@htop 04 "boot :h96  prompt  !quit
+@htop 04 "boot =h96  prompt  !quit
 @here
