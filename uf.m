@@ -1,14 +1,14 @@
 </index> Home
 
 ```UF
-                    88        88 88888888888  
-                    88        88 88           
-                    88        88 88           
-                    88        88 88aaaaa      
-                    88        88 88"""""      
-                    88        88 88           
-                    Y8a.    .a8P 88           
-                     `"Y8888Y"'  88           
+                    88        88 88888888888
+                    88        88 88
+                    88        88 88
+                    88        88 88aaaaa
+                    88        88 88"""""
+                    88        88 88
+                    Y8a.    .a8P 88
+                     `"Y8888Y"'  88
 ```
 
 Version: 9
@@ -29,7 +29,7 @@ Suggestions for improvement or patches providing enhancements and
 corrections are very welcome, see the User's manual for information
 on how to contact the author.
 
-This software was written by Felix L. Winkelmann and has been released 
+This software was written by Felix L. Winkelmann and has been released
 into the public domain. Do with it whatever you like.
 
 <file:/uf/README> Installation instructions and general information
@@ -41,6 +41,8 @@ into the public domain. Do with it whatever you like.
 Release History:
 
 Version 9:
+    * Adapted kernel to newest Uxntal syntax (thanks to Ismael Venegas
+       Castelló.
     * Fixed incorrect offset computations in the ```, `!` and `?` assembler
       words.
     * Fixed totally broken `rnd` (thanks to Harry Prins for reporting this)
@@ -63,7 +65,7 @@ Version 8:
 Version 7:
     * `include`/`included` catches attempts at nested inclusion
        (thanks to Alex Wennerberg for pointing this out).
-    * Fixed `sample` to also set the sample length (thanks to Harry 
+    * Fixed `sample` to also set the sample length (thanks to Harry
       Prins for pointing out this problem).
     * Dropped metadata stuff.
     * Added "lib" subdirectory with a few helpful things.
@@ -80,7 +82,7 @@ Version 6:
 
 Version 5:
     * Added `audio` to select current audio device.
-    * `page` was not exposed to the default dictionary (thanks to Éric 
+    * `page` was not exposed to the default dictionary (thanks to Éric
       Ortie).
     * `]` didn't restore the proper vocabulary order.
 
@@ -100,15 +102,15 @@ Version 3:
     * Newlines in snarfed text spanning multiple lines and pasted
       text are correctly handled now.
     * New words `2variable`, `2constant` and `where`.
-    * Made some small optimizations in the kernel (courtesy of 
+    * Made some small optimizations in the kernel (courtesy of
       Devine Lu Linvega).
     * Exposed `stdin` to override console input events.
-    * Using the scroll-wheel in the editor jumps to previous or next 
+    * Using the scroll-wheel in the editor jumps to previous or next
       block.
     * Sh-Up recalls last entered line in interactive mode.
     * Shift + Arrow-keys replace block-navigation keys ^h, ^n and ^p.
     * Added ^y as an alias for ^v.
-    * ^g, followed by a number of digits allows 
+    * ^g, followed by a number of digits allows
       direct jump to indicated block.
     * Removed `copy`, use ^r to copy block interactively.
     * Added ^m to move block.
@@ -121,12 +123,12 @@ Version 2:
     * Fixed wrong calculation in `depth`.
     * New words `snarf`, `yank`, `theme` expose editor functionality
       for general use.
-    * `.s` prints the contents of the working stack now to the 
+    * `.s` prints the contents of the working stack now to the
       graphical console instead of just invoking the system's debug
       port.
     * New words: `2r@`, `pick`, `.vocs`, `marker`, `list` and `new`.
     * `unused` is now available in the full non-graphical environment.
-    * Added minimal support for shadow (documentation) blocks: `Doc` 
+    * Added minimal support for shadow (documentation) blocks: `Doc`
       and `Code` (and ctrl-key ^h) switch between a block and the
       corresponfing shadow block (blocks 1000+).
     * `filename` doesn't use pad but dedicated 256 byte buffer.
@@ -138,5 +140,5 @@ Version 2:
     * Block lines starting with "\" are drawn in a different color.
     * Fixed bug in `postpone`.
 
-Version 1: 
+Version 1:
     * Initial release
